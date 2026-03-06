@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+    <title>Hitster</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Welcome Screen -->
+    <div id="screen-welcome" class="screen active">
+        <div class="screen-content">
+            <div class="logo">
+                <h1>HITSTER</h1>
+                <p class="subtitle">Plasser hitsen i riktig rekkefølge</p>
+            </div>
+            <div class="welcome-info">
+                <p>En musikkquiz der du plasserer sanger kronologisk på tidslinjen din. Førstemann til 10 kort vinner!</p>
+                <p class="small">Krever Spotify Premium</p>
+            </div>
+            <button class="btn btn-primary btn-large" onclick="App.showSetup()">Start spill</button>
+        </div>
+    </div>
+
+    <!-- Setup Screen -->
+    <div id="screen-setup" class="screen">
+        <div class="screen-content">
+            <h2>Spillere</h2>
+            <div id="player-list" class="player-list">
+                <div class="player-input-row">
+                    <input type="text" class="player-name-input" placeholder="Spiller 1" maxlength="15">
+                    <button class="btn-icon btn-remove-player" onclick="App.removePlayer(this)" style="visibility:hidden">&times;</button>
+                </div>
+                <div class="player-input-row">
+                    <input type="text" class="player-name-input" placeholder="Spiller 2" maxlength="15">
+                    <button class="btn-icon btn-remove-player" onclick="App.removePlayer(this)" style="visibility:hidden">&times;</button>
+                </div>
+            </div>
+            <button class="btn btn-secondary btn-add-player" onclick="App.addPlayer()">+ Legg til spiller</button>
+
+            <div class="settings-section">
+                <h3>Innstillinger</h3>
+                <div class="setting-row">
+                    <label>Kort for å vinne</label>
+                    <div class="stepper">
+                        <button class="btn-icon" onclick="App.adjustWinCount(-1)">-</button>
+                        <span id="win-count">10</span>
+                        <button class="btn-icon" onclick="App.adjustWinCount(1)">+</button>
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn btn-primary btn-large" onclick="App.showSpotifyAuth()">Neste</button>
+            <button class="btn btn-ghost" onclick="App.showScreen('screen-welcome')">Tilbake</button>
+        </div>
+    </div>
+
+    <!-- Spotify Auth Screen -->
+    <div id="screen-spotify" class="screen">
+        <div class="screen-content">
+            <h2>Koble til Spotify</h2>
+            <div class="spotify-instructions">
+                <p>For å spille trenger du en Spotify Developer-app:</p>
+                <ol>
+                    <li>Gå til <strong>developer.spotify.com/dashboard</strong></li>
+                    <li>Opprett en ny app</li>
+                    <li>Legg til denne URLen som Redirect URI:<br>
+                        <code id="redirect-uri"></code>
+                        <button class="btn-copy" onclick="App.copyRedirectUri()">Kopier</button>
+                    </li>
+                    <li>Under "Which API/SDKs are you planning to use?", velg <strong>Web Playback SDK</strong></li>
+                    <li>Kopier Client ID og lim inn under</li>
+                </ol>
+                <div class="input-group">
+                    <label for="client-id-input">Client ID</label>
+                    <input type="text" id="client-id-input" placeholder="Lim inn din Client ID">
+                </div>
+            </div>
+            <button class="btn btn-spotify btn-large" onclick="SpotifyAuth.login()">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>
+                Logg inn med Spotify
+            </button>
+            <div id="spotify-status" class="spotify-status"></div>
+            <button class="btn btn-ghost" onclick="App.showScreen('screen-setup')">Tilbake</button>
+        </div>
+    </div>
+
+    <!-- Game Screen -->
+    <div id="screen-game" class="screen">
+        <div class="game-header">
+            <div class="game-scores" id="game-scores"></div>
+            <div class="current-turn" id="current-turn"></div>
+        </div>
+
+        <div class="game-area">
+            <!-- Now Playing -->
+            <div class="now-playing" id="now-playing">
+                <div class="song-mystery">
+                    <div class="vinyl-record" id="vinyl-record">
+                        <div class="vinyl-grooves"></div>
+                        <div class="vinyl-label">?</div>
+                    </div>
+                    <div class="playback-controls">
+                        <button class="btn btn-play" id="btn-play" onclick="Game.togglePlayback()">
+                            <svg id="icon-play" viewBox="0 0 24 24" width="32" height="32" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                            <svg id="icon-pause" viewBox="0 0 24 24" width="32" height="32" fill="currentColor" style="display:none"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Timeline -->
+            <div class="timeline-container">
+                <h3 class="timeline-title" id="timeline-title">Din tidslinje</h3>
+                <div class="timeline" id="timeline"></div>
+            </div>
+        </div>
+
+        <div class="game-actions" id="game-actions"></div>
+    </div>
+
+    <!-- Song Reveal -->
+    <div id="song-reveal-overlay" class="overlay">
+        <div class="overlay-content">
+            <div id="reveal-result-icon" class="reveal-icon"></div>
+            <h2 id="reveal-title"></h2>
+            <div class="reveal-song-info">
+                <p class="reveal-song-name" id="reveal-song-name"></p>
+                <p class="reveal-song-artist" id="reveal-song-artist"></p>
+                <p class="reveal-song-year" id="reveal-song-year"></p>
+            </div>
+            <button class="btn btn-primary" onclick="Game.nextTurn()">Neste tur</button>
+        </div>
+    </div>
+
+    <!-- Winner Screen -->
+    <div id="screen-winner" class="screen">
+        <div class="screen-content">
+            <div class="winner-trophy">&#127942;</div>
+            <h1 id="winner-name"></h1>
+            <p class="winner-subtitle">vant spillet!</p>
+            <div id="final-scores" class="final-scores"></div>
+            <button class="btn btn-primary btn-large" onclick="App.restart()">Spill igjen</button>
+            <button class="btn btn-ghost" onclick="App.showScreen('screen-welcome')">Hovedmeny</button>
+        </div>
+    </div>
+
+    <script src="songs.js"></script>
+    <script src="spotify.js"></script>
+    <script src="game.js"></script>
+    <script src="app.js"></script>
+    <script src="https://sdk.scdn.co/spotify-player.js"></script>
+</body>
+</html>
