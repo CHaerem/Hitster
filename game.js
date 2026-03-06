@@ -11,6 +11,7 @@ const Game = {
     spotifyAPI: null,
     embedController: null,
     hasPlayedSong: false,
+    lastPlacement: null,
 
     // Initialize a new game
     init(playerNames, cardsToWin) {
@@ -179,6 +180,15 @@ const Game = {
         const player = this.currentPlayer;
         const correct = this.isPlacementCorrect(player.timeline, this.currentSong, dropIndex);
 
+        // Store undo data BEFORE modifying timeline
+        this.lastPlacement = {
+            playerIndex: this.currentPlayerIndex,
+            song: { ...this.currentSong },
+            wasCorrect: correct,
+            timelineBefore: player.timeline.map(c => ({ ...c })),
+            scoreBefore: player.score,
+        };
+
         if (correct) {
             player.timeline.splice(dropIndex, 0, {
                 title: this.currentSong.title,
@@ -190,6 +200,35 @@ const Game = {
 
         this.saveState();
         this.showReveal(correct);
+    },
+
+    // Undo last placement and let player try again
+    undoPlacement() {
+        if (!this.lastPlacement) return;
+
+        const lp = this.lastPlacement;
+        const player = this.players[lp.playerIndex];
+
+        // Restore timeline and score
+        player.timeline = lp.timelineBefore;
+        player.score = lp.scoreBefore;
+
+        // Restore current song so player can re-place
+        this.currentSong = lp.song;
+        this.isWaitingForPlacement = true;
+        this.selectedDropIndex = null;
+        this.hasPlayedSong = true; // Keep drop zones visible
+
+        // Clear undo (only one undo per placement)
+        this.lastPlacement = null;
+
+        // Close reveal overlay
+        document.getElementById('song-reveal-overlay').classList.remove('active');
+
+        // Re-render
+        this.renderScores();
+        this.renderTimeline();
+        this.saveState();
     },
 
     showReveal(correct) {
@@ -214,10 +253,15 @@ const Game = {
             spotifyLink.style.display = 'none';
         }
 
+        // Show undo button only if we have undo data
+        const undoBtn = document.getElementById('reveal-undo-btn');
+        undoBtn.style.display = this.lastPlacement ? '' : 'none';
+
         overlay.classList.add('active');
     },
 
     nextTurn() {
+        this.lastPlacement = null;
         const overlay = document.getElementById('song-reveal-overlay');
         overlay.classList.remove('active');
 
@@ -387,6 +431,7 @@ const Game = {
             currentPlayerIndex: this.currentPlayerIndex,
             cardsToWin: this.cardsToWin,
             usedSongs: [...this.usedSongs],
+            lastPlacement: this.lastPlacement,
         };
         localStorage.setItem('hitster-game', JSON.stringify(state));
     },
@@ -408,6 +453,7 @@ const Game = {
             this.currentSong = null;
             this.isWaitingForPlacement = false;
             this.selectedDropIndex = null;
+            this.lastPlacement = state.lastPlacement || null;
             return true;
         } catch {
             return false;
@@ -416,6 +462,166 @@ const Game = {
 
     clearState() {
         localStorage.removeItem('hitster-game');
+    },
+
+    // --- Hamburger Menu ---
+    toggleMenu() {
+        const panel = document.getElementById('gm-panel');
+        const backdrop = document.getElementById('gm-backdrop');
+        if (panel.classList.contains('active')) {
+            this.closeMenu();
+        } else {
+            this.renderMenu();
+            panel.classList.add('active');
+            backdrop.classList.add('active');
+        }
+    },
+
+    closeMenu() {
+        document.getElementById('gm-panel').classList.remove('active');
+        document.getElementById('gm-backdrop').classList.remove('active');
+    },
+
+    renderMenu() {
+        const body = document.getElementById('gm-panel-body');
+        let html = '';
+
+        // Section: Players & Scores
+        html += '<div class="gm-section"><h4>Spillere</h4>';
+        this.players.forEach((player, i) => {
+            html += `
+                <div class="gm-player-row">
+                    <span class="gm-player-name">${this.escapeHtml(player.name)}</span>
+                    <div class="gm-player-actions">
+                        <button class="btn-icon btn-sm" onclick="Game.gmAdjustScore(${i}, -1)">−</button>
+                        <span class="gm-player-score">${player.score}</span>
+                        <button class="btn-icon btn-sm" onclick="Game.gmAdjustScore(${i}, 1)">+</button>
+                        ${this.players.length > 2 ? `<button class="btn-icon btn-sm gm-btn-remove" onclick="Game.gmRemovePlayer(${i})">&times;</button>` : ''}
+                    </div>
+                </div>`;
+        });
+        html += `
+            <div class="gm-add-player-row">
+                <input type="text" id="gm-new-player-name" placeholder="Ny spiller" maxlength="15">
+                <button class="btn btn-secondary btn-sm" onclick="Game.gmAddPlayer()">+</button>
+            </div>`;
+        html += '</div>';
+
+        // Section: Timeline Editor
+        html += '<div class="gm-section"><h4>Rediger tidslinje</h4>';
+        html += '<select id="gm-timeline-player" onchange="Game.gmRenderTimeline()">';
+        this.players.forEach((player, i) => {
+            html += `<option value="${i}" ${i === this.currentPlayerIndex ? 'selected' : ''}>${this.escapeHtml(player.name)} (${player.timeline.length} kort)</option>`;
+        });
+        html += '</select>';
+        html += '<div id="gm-timeline-cards"></div>';
+        html += '</div>';
+
+        // Section: Restart
+        html += `<div class="gm-section">
+            <button class="btn btn-danger gm-btn-restart" onclick="Game.gmRestart()">Start på nytt</button>
+        </div>`;
+
+        body.innerHTML = html;
+        this.gmRenderTimeline();
+    },
+
+    gmRenderTimeline() {
+        const select = document.getElementById('gm-timeline-player');
+        const playerIndex = parseInt(select.value);
+        const player = this.players[playerIndex];
+        const container = document.getElementById('gm-timeline-cards');
+
+        if (player.timeline.length === 0) {
+            container.innerHTML = '<p class="gm-empty">Ingen kort</p>';
+            return;
+        }
+
+        container.innerHTML = player.timeline.map((card, ci) => `
+            <div class="gm-card">
+                <span class="gm-card-year">${card.year}</span>
+                <span class="gm-card-title">${this.escapeHtml(card.title)}</span>
+                <button class="gm-card-remove" onclick="Game.gmRemoveCard(${playerIndex}, ${ci})">&times;</button>
+            </div>
+        `).join('');
+    },
+
+    // --- Game Master Actions ---
+    gmAdjustScore(playerIndex, delta) {
+        const player = this.players[playerIndex];
+        if (delta > 0) {
+            const card = this.drawSong();
+            player.timeline.push({ title: card.title, artist: card.artist, year: card.year });
+            player.timeline.sort((a, b) => a.year - b.year);
+        } else if (delta < 0 && player.timeline.length > 0) {
+            player.timeline.pop();
+        }
+        player.score = player.timeline.length;
+        this.saveState();
+        this.renderScores();
+        this.renderTimeline();
+        this.renderMenu();
+    },
+
+    gmRemoveCard(playerIndex, cardIndex) {
+        const player = this.players[playerIndex];
+        if (cardIndex < 0 || cardIndex >= player.timeline.length) return;
+        player.timeline.splice(cardIndex, 1);
+        player.score = player.timeline.length;
+        this.saveState();
+        this.renderScores();
+        this.renderTimeline();
+        this.gmRenderTimeline();
+    },
+
+    gmAddPlayer() {
+        const input = document.getElementById('gm-new-player-name');
+        const name = input.value.trim();
+        if (!name || this.players.length >= 10) return;
+
+        const startCard = this.drawSong();
+        this.players.push({
+            name,
+            timeline: [{ title: startCard.title, artist: startCard.artist, year: startCard.year }],
+            score: 1,
+        });
+
+        this.saveState();
+        this.renderScores();
+        this.renderMenu();
+    },
+
+    gmRemovePlayer(playerIndex) {
+        if (this.players.length <= 2) return;
+
+        const wasCurrentPlayer = playerIndex === this.currentPlayerIndex;
+        this.players.splice(playerIndex, 1);
+
+        if (this.currentPlayerIndex >= this.players.length) {
+            this.currentPlayerIndex = 0;
+        } else if (playerIndex < this.currentPlayerIndex) {
+            this.currentPlayerIndex--;
+        }
+
+        if (wasCurrentPlayer) {
+            this.saveState();
+            this.closeMenu();
+            this.renderScores();
+            this.showPassPhone();
+            return;
+        }
+
+        this.saveState();
+        this.renderScores();
+        this.renderCurrentTurn();
+        this.renderMenu();
+    },
+
+    gmRestart() {
+        if (!confirm('Er du sikker på at du vil starte på nytt?')) return;
+        this.closeMenu();
+        this.clearState();
+        App.showScreen('screen-setup');
     },
 
     escapeHtml(str) {
