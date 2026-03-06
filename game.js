@@ -10,6 +10,7 @@ const Game = {
     selectedDropIndex: null,
     spotifyAPI: null,
     embedController: null,
+    hasPlayedSong: false,
 
     // Initialize a new game
     init(playerNames, cardsToWin) {
@@ -103,6 +104,10 @@ const Game = {
                             btn.style.display = 'none';
                             bars.style.display = 'flex';
                             text.textContent = 'Lytt og plasser sangen i tidslinjen';
+                            if (!this.hasPlayedSong) {
+                                this.hasPlayedSong = true;
+                                this.renderTimeline();
+                            }
                         } else if (e.data.isPaused) {
                             // Paused - show play button again
                             btn.style.display = '';
@@ -143,6 +148,7 @@ const Game = {
         this.currentSong = this.drawSong();
         this.isWaitingForPlacement = true;
         this.selectedDropIndex = null;
+        this.hasPlayedSong = false;
 
         // Update UI
         this.renderScores();
@@ -276,7 +282,9 @@ const Game = {
 
         let html = '';
 
-        if (this.isWaitingForPlacement) {
+        const showDropZones = this.isWaitingForPlacement && this.hasPlayedSong;
+
+        if (showDropZones) {
             html += this.renderDropZone(0, timeline.length === 0 ? 'Plasser her' : 'Eldst');
         }
 
@@ -292,7 +300,7 @@ const Game = {
                 </div>
             `;
 
-            if (this.isWaitingForPlacement) {
+            if (showDropZones) {
                 const label = i === timeline.length - 1 ? 'Nyest' : '';
                 html += this.renderDropZone(i + 1, label);
             }
