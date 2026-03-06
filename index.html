@@ -65,10 +65,18 @@
         </div>
 
         <div class="game-area">
-            <!-- Spotify Embed Player -->
-            <div class="spotify-player-container">
+            <!-- Spotify Embed Player (hidden during gameplay) -->
+            <div class="spotify-player-wrapper" id="spotify-wrapper">
                 <div id="spotify-embed"></div>
-                <p class="year-hint" id="year-hint"></p>
+                <div class="player-cover" id="player-cover">
+                    <button class="cover-play-btn" id="cover-play-btn" onclick="Game.togglePlay()">
+                        <svg viewBox="0 0 24 24" width="32" height="32" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
+                    </button>
+                    <div class="listening-bars" id="listening-bars" style="display:none">
+                        <span></span><span></span><span></span><span></span><span></span>
+                    </div>
+                    <p class="listening-text">Trykk for å spille</p>
+                </div>
             </div>
 
             <!-- Timeline -->
@@ -99,6 +107,16 @@
         </div>
     </div>
 
+    <!-- Pass Phone Overlay -->
+    <div id="pass-phone-overlay" class="overlay">
+        <div class="overlay-content">
+            <div class="pass-phone-icon">&#128241;</div>
+            <h2>Gi telefonen til</h2>
+            <p class="pass-phone-name" id="pass-phone-name"></p>
+            <button class="btn btn-primary btn-large" onclick="Game.onPlayerReady()">Jeg er klar!</button>
+        </div>
+    </div>
+
     <!-- Winner Screen -->
     <div id="screen-winner" class="screen">
         <div class="screen-content">
@@ -111,9 +129,9 @@
         </div>
     </div>
 
+    <script src="https://open.spotify.com/embed/iframe-api/v1"></script>
     <script src="songs.js"></script>
     <script src="game.js"></script>
     <script src="app.js"></script>
-    <script src="https://open.spotify.com/embed/iframe-api/v1"></script>
 </body>
 </html>

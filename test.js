@@ -79,8 +79,9 @@ section('Game Init');
 G.init(['Alice', 'Bob'], 10);
 assert('2 players', G.players.length === 2);
 assert('Correct names', G.players[0].name === 'Alice' && G.players[1].name === 'Bob');
-assert('Empty timelines', G.players.every(p => p.timeline.length === 0));
-assert('Score 0', G.players.every(p => p.score === 0));
+assert('Each player starts with 1 card', G.players.every(p => p.timeline.length === 1));
+assert('Starting cards have year', G.players.every(p => p.timeline[0].year >= 1950));
+assert('Score 1 (starting card)', G.players.every(p => p.score === 1));
 assert('cardsToWin = 10', G.cardsToWin === 10);
 assert('currentPlayer is Alice', G.currentPlayer.name === 'Alice');
 assert('Deck populated', G.deck.length > 0);
@@ -92,6 +93,7 @@ const s1 = G.drawSong();
 assert('Returns song object', s1 && s1.title && s1.artist && s1.year);
 const s2 = G.drawSong();
 assert('Second draw is different', s1.title !== s2.title || s1.artist !== s2.artist);
+assert('Starting cards not redrawn', !G.players.some(p => p.timeline[0].title === s1.title && p.timeline[0].artist === s1.artist));
 
 // Draw many
 G.init(['A', 'B'], 10);
@@ -158,6 +160,101 @@ G.currentPlayerIndex = (G.currentPlayerIndex + 1) % G.players.length;
 assert('Advances to 2', G.currentPlayerIndex === 2);
 G.currentPlayerIndex = (G.currentPlayerIndex + 1) % G.players.length;
 assert('Wraps to 0', G.currentPlayerIndex === 0);
+
+// ==================== FULL GAME FLOW SIMULATION ====================
+section('Full Game Flow (2 players, win at 3)');
+
+G.init(['Alice', 'Bob'], 3);
+assert('Flow: Game initialized', G.players.length === 2 && G.cardsToWin === 3);
+assert('Flow: Each player starts with 1 card', G.players.every(p => p.timeline.length === 1 && p.score === 1));
+assert('Flow: Alice starts', G.currentPlayer.name === 'Alice');
+
+// Turn 1: Alice draws and places correctly
+G.currentSong = G.drawSong();
+G.isWaitingForPlacement = true;
+assert('Flow: Song drawn for Alice', G.currentSong !== null);
+
+const aliceSong1 = G.currentSong;
+const tl0 = G.players[0].timeline;
+// Find correct position in existing timeline
+let idx0 = tl0.length;
+for (let i = 0; i <= tl0.length; i++) {
+    if (G.isPlacementCorrect(tl0, aliceSong1, i)) { idx0 = i; break; }
+}
+tl0.splice(idx0, 0, { title: aliceSong1.title, artist: aliceSong1.artist, year: aliceSong1.year });
+G.players[0].score = tl0.length;
+G.isWaitingForPlacement = false;
+assert('Flow: Alice score = 2', G.players[0].score === 2);
+
+// Check no winner yet
+assert('Flow: No winner yet', !G.players.find(p => p.score >= G.cardsToWin));
+
+// Advance to Bob
+G.currentPlayerIndex = (G.currentPlayerIndex + 1) % G.players.length;
+assert('Flow: Now Bob turn', G.currentPlayer.name === 'Bob');
+
+// Turn 2: Bob places WRONG (simulate)
+G.currentSong = G.drawSong();
+G.isWaitingForPlacement = true;
+// Don't add to timeline (wrong placement)
+G.isWaitingForPlacement = false;
+assert('Flow: Bob still score = 1 after wrong', G.players[1].score === 1);
+
+// Advance back to Alice
+G.currentPlayerIndex = (G.currentPlayerIndex + 1) % G.players.length;
+assert('Flow: Back to Alice', G.currentPlayer.name === 'Alice');
+
+// Turn 3: Alice places correctly to win (score 2 -> 3)
+G.currentSong = G.drawSong();
+G.isWaitingForPlacement = true;
+const aliceTl = G.players[0].timeline;
+let idx1 = aliceTl.length;
+for (let i = 0; i <= aliceTl.length; i++) {
+    if (G.isPlacementCorrect(aliceTl, G.currentSong, i)) { idx1 = i; break; }
+}
+aliceTl.splice(idx1, 0, { title: G.currentSong.title, artist: G.currentSong.artist, year: G.currentSong.year });
+G.players[0].score = aliceTl.length;
+G.isWaitingForPlacement = false;
+
+assert('Flow: Alice score = 3', G.players[0].score === 3);
+const flowWinner = G.players.find(p => p.score >= G.cardsToWin);
+assert('Flow: Alice wins!', flowWinner && flowWinner.name === 'Alice');
+
+// Verify Alice's timeline is chronologically valid
+let timelineValid = true;
+for (let i = 1; i < aliceTl.length; i++) {
+    if (aliceTl[i].year < aliceTl[i-1].year) {
+        timelineValid = false;
+        break;
+    }
+}
+assert('Flow: Alice timeline is chronologically sorted', timelineValid);
+
+// ==================== MULTI-PLAYER ROTATION (10 players) ====================
+section('Multi-Player Rotation');
+const tenPlayers = Array.from({length: 10}, (_, i) => 'P' + (i + 1));
+G.init(tenPlayers, 5);
+assert('10 players initialized', G.players.length === 10);
+for (let i = 0; i < 20; i++) {
+    const expected = i % 10;
+    assert('Turn ' + i + ': player P' + (expected + 1), G.currentPlayerIndex === expected);
+    G.currentPlayerIndex = (G.currentPlayerIndex + 1) % G.players.length;
+}
+
+// ==================== GAME RESTART ====================
+section('Game Restart');
+G.init(['X', 'Y'], 5);
+G.players[0].score = 5;
+G.players[0].timeline = [{year: 1970}, {year: 1980}, {year: 1990}, {year: 2000}, {year: 2010}];
+G.currentPlayerIndex = 1;
+G.usedSongs.add('test-song');
+
+// Reinit (simulates restart)
+G.init(['X', 'Y'], 5);
+assert('Restart: scores reset to 1 (starting card)', G.players.every(p => p.score === 1));
+assert('Restart: timelines have 1 card', G.players.every(p => p.timeline.length === 1));
+assert('Restart: player index reset', G.currentPlayerIndex === 0);
+assert('Restart: deck repopulated', G.deck.length > 0);
 
 // ==================== SUMMARY ====================
 const total = passed + failed;

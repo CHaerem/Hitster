@@ -8,16 +8,11 @@ const Game = {
     usedSongs: new Set(),
     isWaitingForPlacement: false,
     selectedDropIndex: null,
+    spotifyAPI: null,
     embedController: null,
-    embedReady: false,
 
     // Initialize a new game
     init(playerNames, cardsToWin) {
-        this.players = playerNames.map(name => ({
-            name,
-            timeline: [],
-            score: 0,
-        }));
         this.cardsToWin = cardsToWin;
         this.currentPlayerIndex = 0;
         this.usedSongs = new Set();
@@ -25,6 +20,16 @@ const Game = {
         this.currentSong = null;
         this.isWaitingForPlacement = false;
         this.selectedDropIndex = null;
+
+        // Each player starts with 1 card in their timeline
+        this.players = playerNames.map(name => {
+            const startCard = this.drawSong();
+            return {
+                name,
+                timeline: [{ title: startCard.title, artist: startCard.artist, year: startCard.year }],
+                score: 1,
+            };
+        });
     },
 
     get currentPlayer() {
@@ -53,45 +58,59 @@ const Game = {
         return this.deck.pop();
     },
 
-    // Initialize Spotify embed
-    initEmbed() {
-        return new Promise((resolve) => {
-            if (this.embedController) {
-                resolve();
-                return;
-            }
+    // Load song into hidden embed (user triggers play via cover button)
+    loadSong(spotifyId) {
+        const uri = `spotify:track:${spotifyId}`;
 
+        // Reset cover UI - disable play button until controller is ready
+        const playBtn = document.getElementById('cover-play-btn');
+        playBtn.style.display = '';
+        playBtn.disabled = true;
+        playBtn.style.opacity = '0.4';
+        document.getElementById('listening-bars').style.display = 'none';
+        document.querySelector('.listening-text').textContent = 'Laster sang...';
+
+        // Destroy old controller so we get a fresh one each turn
+        this.embedController = null;
+
+        if (this.spotifyAPI) {
             const container = document.getElementById('spotify-embed');
-
-            window.onSpotifyIframeApiReady = (IFrameAPI) => {
-                const options = {
-                    width: '100%',
-                    height: '80',
-                    uri: 'spotify:track:7tFiyTwD0nx5a1eklYtX2J', // placeholder
-                    theme: 0,
-                };
-                IFrameAPI.createController(container, options, (controller) => {
+            container.innerHTML = '<div id="spotify-iframe"></div>';
+            this.spotifyAPI.createController(
+                document.getElementById('spotify-iframe'),
+                { uri, height: 152, width: '100%', theme: 0 },
+                (controller) => {
                     this.embedController = controller;
-                    this.embedReady = true;
-                    controller.addListener('ready', () => {
-                        this.embedReady = true;
-                    });
-                    resolve();
-                });
-            };
-
-            // If already loaded
-            if (window.SpotifyIframeApi) {
-                window.onSpotifyIframeApiReady(window.SpotifyIframeApi);
-            }
-        });
+                    // Enable play button now that controller is ready
+                    playBtn.disabled = false;
+                    playBtn.style.opacity = '';
+                    document.querySelector('.listening-text').textContent = 'Trykk for å spille';
+                }
+            );
+        } else {
+            const container = document.getElementById('spotify-embed');
+            container.innerHTML = `<iframe
+                src="https://open.spotify.com/embed/track/${spotifyId}?theme=0"
+                width="100%"
+                height="152"
+                frameBorder="0"
+                allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                loading="lazy"></iframe>`;
+            playBtn.disabled = false;
+            playBtn.style.opacity = '';
+            document.querySelector('.listening-text').textContent = 'Trykk for å spille';
+        }
     },
 
-    // Load a song in the embed
-    loadSong(spotifyId) {
+    // Called from play button on cover (direct user gesture = reliable)
+    togglePlay() {
         if (this.embedController) {
-            this.embedController.loadUri(`spotify:track:${spotifyId}`);
+            this.embedController.togglePlay();
         }
+        // Switch to equalizer UI
+        document.getElementById('cover-play-btn').style.display = 'none';
+        document.getElementById('listening-bars').style.display = 'flex';
+        document.querySelector('.listening-text').textContent = 'Lytt og plasser sangen i tidslinjen';
     },
 
     // Start a new turn
@@ -105,13 +124,12 @@ const Game = {
         this.renderCurrentTurn();
         this.renderTimeline();
 
-        // Load song in embed
+        // Hide embed and show listening cover, then load + autoplay
+        const wrapper = document.querySelector('.spotify-player-wrapper');
+        wrapper.classList.add('hidden-player');
         if (this.currentSong.spotifyId) {
             this.loadSong(this.currentSong.spotifyId);
         }
-
-        // Show year hint
-        document.getElementById('year-hint').textContent = 'Hvilket år kom denne sangen ut?';
     },
 
     // Check if placement is correct
@@ -143,6 +161,9 @@ const Game = {
     },
 
     showReveal(correct) {
+        // Show embed to reveal song info
+        document.querySelector('.spotify-player-wrapper').classList.remove('hidden-player');
+
         const overlay = document.getElementById('song-reveal-overlay');
         const icon = document.getElementById('reveal-result-icon');
         const title = document.getElementById('reveal-title');
@@ -178,6 +199,19 @@ const Game = {
         }
 
         this.currentPlayerIndex = (this.currentPlayerIndex + 1) % this.players.length;
+        this.showPassPhone();
+    },
+
+    // Show "pass the phone" interstitial between turns
+    showPassPhone() {
+        const passOverlay = document.getElementById('pass-phone-overlay');
+        document.getElementById('pass-phone-name').textContent = this.currentPlayer.name;
+        passOverlay.classList.add('active');
+    },
+
+    // Called when next player is ready
+    onPlayerReady() {
+        document.getElementById('pass-phone-overlay').classList.remove('active');
         this.startTurn();
     },
 
@@ -316,4 +350,9 @@ const Game = {
     escapeHtml(str) {
         return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     },
+};
+
+// Spotify IFrame API callback
+window.onSpotifyIframeApiReady = (IFrameAPI) => {
+    Game.spotifyAPI = IFrameAPI;
 };

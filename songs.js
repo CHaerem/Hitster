@@ -43,7 +43,7 @@ const SONGS_DATABASE = [
     { title: "Never Gonna Give You Up", artist: "Rick Astley", year: 1987, spotifyId: "4PTG3Z6ehGkBFwjybzWkR8" },
     { title: "I Wanna Dance with Somebody", artist: "Whitney Houston", year: 1987, spotifyId: "2tUBqZG2AbRi7Q0BIrVrEj" },
     { title: "Girls Just Want to Have Fun", artist: "Cyndi Lauper", year: 1983, spotifyId: "3MlVJGSJQ3GBBnlRnEKz0B" },
-    { title: "Total Eclipse of the Heart", artist: "Bonnie Tyler", year: 1983, spotifyId: "5ghIJDpPoe3CfHMGu71E6T" },
+    { title: "Total Eclipse of the Heart", artist: "Bonnie Tyler", year: 1983, spotifyId: "7wuJGgpTNzbUyn26IOY6rj" },
     { title: "Jump", artist: "Van Halen", year: 1984, spotifyId: "37ZJ0p5Jm13UiJoLMm0X9N" },
     { title: "Blue Monday", artist: "New Order", year: 1983, spotifyId: "7INHYSeusaFlyasZv0mvmp" },
 
@@ -62,7 +62,7 @@ const SONGS_DATABASE = [
     { title: "Barbie Girl", artist: "Aqua", year: 1997, spotifyId: "2LiGKnCqrJmauRFI6fBotf" },
     { title: "Believe", artist: "Cher", year: 1998, spotifyId: "2goLsvvODILDzeeiT4dAoR" },
     { title: "Bitter Sweet Symphony", artist: "The Verve", year: 1997, spotifyId: "57iDDD9N4BmXD3sQIGNlxm" },
-    { title: "Torn", artist: "Natalie Imbruglia", year: 1997, spotifyId: "2uqYupMHANxnwgeiXTZXzd" },
+    { title: "Torn", artist: "Natalie Imbruglia", year: 1997, spotifyId: "0KDaN0HL3TcJVTbXlQCEsS" },
 
     // 2000s
     { title: "Crazy in Love", artist: "Beyonce", year: 2003, spotifyId: "5IVuqXILoxVWvWEPm82Jxr" },
@@ -129,7 +129,7 @@ const SONGS_DATABASE = [
     { title: "Watermelon Sugar", artist: "Harry Styles", year: 2020, spotifyId: "6UelLqGlWMcVH1E5c4H7lY" },
     { title: "As It Was", artist: "Harry Styles", year: 2022, spotifyId: "4LRPiXqCikLlN15c3yImP7" },
     { title: "good 4 u", artist: "Olivia Rodrigo", year: 2021, spotifyId: "4ZtFanR9U6ndgddUvNcjcG" },
-    { title: "Drivers License", artist: "Olivia Rodrigo", year: 2021, spotifyId: "5QO79kh1waicV47BqGRL3g" },
+    { title: "Drivers License", artist: "Olivia Rodrigo", year: 2021, spotifyId: "1jo8sE5tvfGtS56sCHXuuP" },
     { title: "Montero", artist: "Lil Nas X", year: 2021, spotifyId: "67BtfxlNbhBKdraz4163gd" },
     { title: "Save Your Tears", artist: "The Weeknd", year: 2020, spotifyId: "5QO79kh1waicV47BqGRL3g" },
     { title: "Heat Waves", artist: "Glass Animals", year: 2020, spotifyId: "02MWAaffLxlfxAUY7c5dvx" },

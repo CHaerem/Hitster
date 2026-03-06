@@ -23,10 +23,7 @@ const App = {
 
         Game.init(names, this.winCount);
         this.showScreen('screen-game');
-
-        // Initialize embed and start first turn
-        await Game.initEmbed();
-        Game.startTurn();
+        Game.showPassPhone();
     },
 
     getPlayerNames() {
