@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Hitster Tests</title>
+    <style>
+        body { font-family: monospace; background: #111; color: #eee; padding: 20px; }
+        .pass { color: #1DB954; }
+        .fail { color: #e74c3c; }
+        .section { margin-top: 16px; font-weight: bold; color: #8888aa; }
+        #results div { padding: 2px 0; }
+        #summary { margin-top: 20px; font-size: 18px; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>Hitster Test Suite</h1>
+    <div id="results"></div>
+    <div id="summary"></div>
+
+    <!-- Load app code (no DOM dependencies at load time) -->
+    <div id="spotify-embed" style="display:none"></div>
+    <div id="game-scores"></div>
+    <div id="current-turn"></div>
+    <div id="timeline"></div>
+    <div id="timeline-title"></div>
+    <div id="year-hint"></div>
+    <div id="song-reveal-overlay"><div id="reveal-result-icon"></div><h2 id="reveal-title"></h2><p id="reveal-song-name"></p><p id="reveal-song-artist"></p><p id="reveal-song-year"></p><a id="reveal-spotify-link" href="#"></a></div>
+    <div id="screen-game"></div>
+    <div id="winner-name"></div>
+    <div id="final-scores"></div>
+
+    <script src="songs.js"></script>
+    <script src="game.js"></script>
+
+    <script>
+        const results = document.getElementById('results');
+        const summary = document.getElementById('summary');
+        let passed = 0;
+        let failed = 0;
+
+        function section(name) {
+            const el = document.createElement('div');
+            el.className = 'section';
+            el.textContent = '--- ' + name + ' ---';
+            results.appendChild(el);
+        }
+
+        function assert(description, condition) {
+            const el = document.createElement('div');
+            if (condition) {
+                el.className = 'pass';
+                el.textContent = 'PASS: ' + description;
+                passed++;
+            } else {
+                el.className = 'fail';
+                el.textContent = 'FAIL: ' + description;
+                failed++;
+            }
+            results.appendChild(el);
+        }
+
+        // ==================== SONGS DATABASE TESTS ====================
+        section('Songs Database');
+
+        assert('SONGS_DATABASE is defined and is an array', Array.isArray(SONGS_DATABASE));
+        assert('Has at least 80 songs', SONGS_DATABASE.length >= 80);
+
+        // Check all songs have required fields
+        const allHaveFields = SONGS_DATABASE.every(s => s.title && s.artist && s.year && s.spotifyId);
+        assert('All songs have title, artist, year, and spotifyId', allHaveFields);
+
+        // Check years are reasonable
+        const allYearsValid = SONGS_DATABASE.every(s => s.year >= 1950 && s.year <= 2025);
+        assert('All years are between 1950-2025', allYearsValid);
+
+        // Check spotifyId format (22 chars, alphanumeric)
+        const allIdsValid = SONGS_DATABASE.every(s => /^[a-zA-Z0-9]{20,24}$/.test(s.spotifyId));
+        assert('All Spotify IDs are valid format (20-24 alphanumeric chars)', allIdsValid);
+
+        // Check for unique songs (no exact title+artist duplicates)
+        const songKeys = SONGS_DATABASE.map(s => `${s.title}|${s.artist}`);
+        const uniqueKeys = new Set(songKeys);
+        assert('No duplicate title+artist combinations', songKeys.length === uniqueKeys.size);
+
+        // Check decade distribution
+        const decades = {};
+        SONGS_DATABASE.forEach(s => {
+            const decade = Math.floor(s.year / 10) * 10;
+            decades[decade] = (decades[decade] || 0) + 1;
+        });
+        assert('Has songs from at least 5 different decades', Object.keys(decades).length >= 5);
+
+        // ==================== SHUFFLE TESTS ====================
+        section('Shuffle Function');
+
+        const original = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+        const shuffled = shuffleArray(original);
+        assert('shuffleArray returns array of same length', shuffled.length === original.length);
+        assert('shuffleArray contains all original elements', original.every(x => shuffled.includes(x)));
+        assert('shuffleArray does not modify original', JSON.stringify(original) === JSON.stringify([1,2,3,4,5,6,7,8,9,10]));
+
+        // Shuffle should produce different order (probabilistically)
+        let differentCount = 0;
+        for (let i = 0; i < 10; i++) {
+            const s = shuffleArray(original);
+            if (JSON.stringify(s) !== JSON.stringify(original)) differentCount++;
+        }
+        assert('shuffleArray produces different orderings (at least 8/10 times)', differentCount >= 8);
+
+        // ==================== GAME INIT TESTS ====================
+        section('Game Initialization');
+
+        Game.init(['Alice', 'Bob'], 10);
+        assert('Game initializes with correct number of players', Game.players.length === 2);
+        assert('Player names are correct', Game.players[0].name === 'Alice' && Game.players[1].name === 'Bob');
+        assert('Players start with empty timelines', Game.players.every(p => p.timeline.length === 0));
+        assert('Players start with score 0', Game.players.every(p => p.score === 0));
+        assert('cardsToWin is set correctly', Game.cardsToWin === 10);
+        assert('currentPlayerIndex starts at 0', Game.currentPlayerIndex === 0);
+        assert('currentPlayer returns first player', Game.currentPlayer.name === 'Alice');
+        assert('Deck is populated', Game.deck.length > 0);
+
+        // ==================== DRAW SONG TESTS ====================
+        section('Drawing Songs');
+
+        Game.init(['Alice', 'Bob'], 10);
+        const song1 = Game.drawSong();
+        assert('drawSong returns a song object', song1 !== null && song1.title && song1.artist && song1.year);
+
+        const song2 = Game.drawSong();
+        assert('Drawing again returns a different song', song1.title !== song2.title || song1.artist !== song2.artist);
+
+        // Draw many songs - should not crash
+        Game.init(['Alice', 'Bob'], 10);
+        let drawError = false;
+        try {
+            for (let i = 0; i < 100; i++) {
+                Game.drawSong();
+            }
+        } catch (e) {
+            drawError = true;
+        }
+        assert('Can draw 100 songs without error (reshuffles if needed)', !drawError);
+
+        // ==================== PLACEMENT LOGIC TESTS ====================
+        section('Placement Logic');
+
+        // Empty timeline - any placement is correct
+        const emptyTimeline = [];
+        assert('Any song can be placed on empty timeline',
+            Game.isPlacementCorrect(emptyTimeline, { year: 2000 }, 0));
+
+        // Single item timeline
+        const singleTimeline = [{ year: 2000 }];
+        assert('Song before 2000 placed at index 0 is correct',
+            Game.isPlacementCorrect(singleTimeline, { year: 1990 }, 0));
+        assert('Song after 2000 placed at index 1 is correct',
+            Game.isPlacementCorrect(singleTimeline, { year: 2010 }, 1));
+        assert('Song before 2000 placed at index 1 is wrong',
+            !Game.isPlacementCorrect(singleTimeline, { year: 1990 }, 1));
+        assert('Song after 2000 placed at index 0 is wrong',
+            !Game.isPlacementCorrect(singleTimeline, { year: 2010 }, 0));
+        assert('Same year placed at index 0 is correct',
+            Game.isPlacementCorrect(singleTimeline, { year: 2000 }, 0));
+        assert('Same year placed at index 1 is correct',
+            Game.isPlacementCorrect(singleTimeline, { year: 2000 }, 1));
+
+        // Multi-item timeline
+        const multiTimeline = [{ year: 1980 }, { year: 1990 }, { year: 2010 }];
+        assert('1985 between 1980 and 1990 (index 1) is correct',
+            Game.isPlacementCorrect(multiTimeline, { year: 1985 }, 1));
+        assert('2000 between 1990 and 2010 (index 2) is correct',
+            Game.isPlacementCorrect(multiTimeline, { year: 2000 }, 2));
+        assert('1970 before 1980 (index 0) is correct',
+            Game.isPlacementCorrect(multiTimeline, { year: 1970 }, 0));
+        assert('2020 after 2010 (index 3) is correct',
+            Game.isPlacementCorrect(multiTimeline, { year: 2020 }, 3));
+        assert('2005 placed at index 1 (between 1980-1990) is wrong',
+            !Game.isPlacementCorrect(multiTimeline, { year: 2005 }, 1));
+        assert('1970 placed at index 2 (between 1990-2010) is wrong',
+            !Game.isPlacementCorrect(multiTimeline, { year: 1970 }, 2));
+        assert('1975 placed at end (index 3, after 2010) is wrong',
+            !Game.isPlacementCorrect(multiTimeline, { year: 1975 }, 3));
+
+        // ==================== ESCAPE HTML TESTS ====================
+        section('HTML Escaping');
+
+        assert('Escapes < and >', Game.escapeHtml('<script>alert("xss")</script>').includes('&lt;'));
+        assert('Escapes quotes', Game.escapeHtml('"hello"').includes('&quot;'));
+        assert('Normal text passes through', Game.escapeHtml('Hello World') === 'Hello World');
+
+        // ==================== GAME FLOW TESTS ====================
+        section('Game Flow');
+
+        Game.init(['Alice', 'Bob', 'Charlie'], 5);
+        assert('3-player game initializes correctly', Game.players.length === 3);
+
+        // Simulate placing a song correctly
+        Game.players[0].timeline = [{ year: 1980 }, { year: 2000 }];
+        Game.currentSong = { title: 'Test', artist: 'Artist', year: 1990, spotifyId: 'abc123' };
+        Game.isWaitingForPlacement = true;
+
+        const correctPlacement = Game.isPlacementCorrect(Game.players[0].timeline, Game.currentSong, 1);
+        assert('1990 between 1980 and 2000 is correct', correctPlacement);
+
+        // Test player rotation
+        Game.currentPlayerIndex = 0;
+        Game.currentPlayerIndex = (Game.currentPlayerIndex + 1) % Game.players.length;
+        assert('Player index advances from 0 to 1', Game.currentPlayerIndex === 1);
+        Game.currentPlayerIndex = (Game.currentPlayerIndex + 1) % Game.players.length;
+        assert('Player index advances from 1 to 2', Game.currentPlayerIndex === 2);
+        Game.currentPlayerIndex = (Game.currentPlayerIndex + 1) % Game.players.length;
+        assert('Player index wraps from 2 back to 0', Game.currentPlayerIndex === 0);
+
+        // Test win condition
+        Game.init(['Alice', 'Bob'], 3);
+        Game.players[0].score = 3;
+        const winner = Game.players.find(p => p.score >= Game.cardsToWin);
+        assert('Player with enough cards is detected as winner', winner !== undefined && winner.name === 'Alice');
+
+        Game.players[0].score = 2;
+        const noWinner = Game.players.find(p => p.score >= Game.cardsToWin);
+        assert('Player with not enough cards is not a winner', noWinner === undefined);
+
+        // ==================== EDGE CASES ====================
+        section('Edge Cases');
+
+        // Very long timeline
+        const longTimeline = [];
+        for (let y = 1960; y <= 2020; y++) {
+            longTimeline.push({ year: y });
+        }
+        assert('Placement works with 60+ cards in timeline',
+            Game.isPlacementCorrect(longTimeline, { year: 1959 }, 0) &&
+            Game.isPlacementCorrect(longTimeline, { year: 2021 }, longTimeline.length) &&
+            !Game.isPlacementCorrect(longTimeline, { year: 2021 }, 0));
+
+        // Same year as neighbor
+        const sameYearTimeline = [{ year: 1990 }, { year: 1990 }, { year: 2000 }];
+        assert('Duplicate years in timeline still work',
+            Game.isPlacementCorrect(sameYearTimeline, { year: 1990 }, 0) &&
+            Game.isPlacementCorrect(sameYearTimeline, { year: 1990 }, 1) &&
+            Game.isPlacementCorrect(sameYearTimeline, { year: 1990 }, 2));
+
+        // ==================== SUMMARY ====================
+        const total = passed + failed;
+        summary.textContent = `${passed}/${total} tests passed`;
+        summary.className = failed === 0 ? 'pass' : 'fail';
+
+        // Also log for CI
+        console.log(`TEST RESULTS: ${passed}/${total} passed, ${failed} failed`);
+        if (failed > 0) {
+            console.error('TESTS FAILED');
+        }
+    </script>
+</body>
+</html>
