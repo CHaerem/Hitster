@@ -74,8 +74,8 @@ const Game = {
         document.getElementById('listening-bars').style.display = 'none';
         document.querySelector('.listening-text').textContent = 'Laster sang...';
 
-        // Destroy old controller so we get a fresh one each turn
-        this.embedController = null;
+        // Stop old playback before creating fresh controller
+        this.stopPlayback();
 
         if (this.spotifyAPI) {
             const container = document.getElementById('spotify-embed');
@@ -135,6 +135,16 @@ const Game = {
         }
     },
 
+    // Stop any current playback and destroy the embed
+    stopPlayback() {
+        if (this.embedController) {
+            try { this.embedController.togglePlay(); } catch (e) {}
+            this.embedController = null;
+        }
+        const container = document.getElementById('spotify-embed');
+        if (container) container.innerHTML = '';
+    },
+
     // Called from play button on cover (direct user gesture = reliable)
     togglePlay() {
         if (this.embedController) {
@@ -176,6 +186,7 @@ const Game = {
     async placeSong(dropIndex) {
         if (!this.isWaitingForPlacement || !this.currentSong) return;
         this.isWaitingForPlacement = false;
+        this.stopPlayback();
 
         const player = this.currentPlayer;
         const correct = this.isPlacementCorrect(player.timeline, this.currentSong, dropIndex);
@@ -290,6 +301,7 @@ const Game = {
     },
 
     showWinner(winner) {
+        this.stopPlayback();
         this.clearState();
         document.getElementById('winner-name').textContent = winner.name;
 
@@ -619,6 +631,7 @@ const Game = {
 
     gmRestart() {
         if (!confirm('Er du sikker på at du vil starte på nytt?')) return;
+        this.stopPlayback();
         this.closeMenu();
         this.clearState();
         App.showScreen('screen-setup');

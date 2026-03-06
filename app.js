@@ -81,6 +81,7 @@ const App = {
     },
 
     restart() {
+        Game.stopPlayback();
         Game.clearState();
         this.showScreen('screen-setup');
     },
