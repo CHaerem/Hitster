@@ -1072,11 +1072,19 @@ body.overlay-active {
     display: flex;
     gap: 12px;
     justify-content: center;
-    margin-top: 10px;
+    margin-top: 12px;
+    margin-bottom: 8px;
 }
 
 .token-award-buttons .btn {
-    min-width: 100px;
+    flex: 1;
+    max-width: 140px;
+    padding: 10px 16px;
+    font-size: 15px;
+}
+
+.token-award-buttons .btn-ghost {
+    border: 1px solid rgba(255,255,255,0.2);
 }
 
 /* Game action buttons (skip / trade) */

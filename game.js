@@ -593,15 +593,18 @@ const Game = {
         const tokenSection = document.getElementById('token-award-section');
         const tokenText = document.getElementById('token-award-text');
         const tokenButtons = document.getElementById('token-award-buttons');
+        const nextTurnBtn = document.getElementById('btn-next-turn');
         if (this.titleArtistClaimed) {
             const claimPlayer = this.players[this.challengePhase.originalPlayerIndex];
             tokenText.textContent = `${this.escapeHtml(claimPlayer.name)} hevdet \u00e5 vite tittel og artist \u2014 stemte det?`;
             tokenText.className = 'token-award-text';
             tokenButtons.style.display = '';
             tokenSection.style.display = '';
+            nextTurnBtn.style.display = 'none';
         } else {
             tokenSection.style.display = 'none';
             tokenButtons.style.display = 'none';
+            nextTurnBtn.style.display = '';
         }
 
         this.saveState();
@@ -888,6 +891,7 @@ const Game = {
             tokenText.className = 'token-award-text';
         }
         tokenButtons.style.display = 'none';
+        document.getElementById('btn-next-turn').style.display = '';
         this.saveState();
         this.renderScores();
     },
