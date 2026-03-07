@@ -1,5 +1,6 @@
 // Song database with Spotify track IDs
-const SONGS_DATABASE = [
+// Can be replaced at runtime by loading a custom JSON song list
+let SONGS_DATABASE = [
     // 1950s
     { title: "Johnny B. Goode", artist: "Chuck Berry", year: 1958, spotifyId: "4OqHfSB4UN2THL2cYAFN3L" },
     { title: "Jailhouse Rock", artist: "Elvis Presley", year: 1957, spotifyId: "5VnDkUNyX6u5Sk0yZiP8XB" },

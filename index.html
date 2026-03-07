@@ -52,6 +52,19 @@
                 </div>
             </div>
 
+            <div class="settings-section songs-section">
+                <h3>Sangliste</h3>
+                <div class="song-source-info">
+                    <span class="song-source-badge" id="song-source-badge">Standard (213 sanger)</span>
+                </div>
+                <div class="song-url-row">
+                    <input type="text" id="playlist-url" placeholder="Lim inn Spotify-spilleliste URL" autocomplete="off">
+                    <button class="btn btn-secondary btn-sm" onclick="App.loadPlaylist()">Last</button>
+                </div>
+                <p class="songs-help-text" id="songs-help-text">Lim inn en Spotify-spilleliste for egne sanger.</p>
+                <button class="btn-link" id="spotify-reset-btn" onclick="App.resetSongs()" style="display:none">Tilbake til standard</button>
+            </div>
+
             <button class="btn btn-primary btn-large" onclick="App.startGame()">Start</button>
             <button class="btn btn-ghost" onclick="App.showScreen('screen-welcome')">Tilbake</button>
         </div>
@@ -148,8 +161,8 @@
     </div>
 
     <script src="https://open.spotify.com/embed/iframe-api/v1"></script>
-    <script src="songs.js?v=9"></script>
-    <script src="game.js?v=9"></script>
-    <script src="app.js?v=9"></script>
+    <script src="songs.js?v=14"></script>
+    <script src="game.js?v=14"></script>
+    <script src="app.js?v=14"></script>
 </body>
 </html>
