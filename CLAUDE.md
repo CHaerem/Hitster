@@ -42,6 +42,17 @@ Single-page app with 5 screens managed by showing/hiding divs (no router):
 - Norwegian for all user-facing text (UI, errors, labels)
 - English for code (variable names, comments, commit messages)
 
+## Development Workflow
+
+After the user approves a plan, complete the **entire** development cycle autonomously:
+1. Create feature branch from `main`
+2. Implement changes
+3. Run `node test.js` — fix until all tests pass
+4. Verify visually with preview tools if UI changed
+5. Commit, push, and create PR to `main`
+
+Do NOT stop to ask for confirmation between these steps.
+
 ## Git Workflow
 
 - `main` is protected — all changes via PR

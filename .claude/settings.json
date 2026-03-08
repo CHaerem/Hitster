@@ -2,26 +2,17 @@
   "permissions": {
     "allow": [
       "Bash(node test.js)",
+      "Bash(node -c:*)",
+      "Bash(node -e:*)",
       "Bash(node tools/generate-songs.js:*)",
       "Bash(python3 -m http.server:*)",
-      "Bash(git status:*)",
-      "Bash(git log:*)",
-      "Bash(git diff:*)",
-      "Bash(git branch:*)",
-      "Bash(git checkout:*)",
-      "Bash(git pull:*)",
-      "Bash(git add:*)",
-      "Bash(git commit:*)",
-      "Bash(git push:*)",
-      "Bash(git stash:*)",
-      "Bash(gh pr:*)",
-      "Bash(gh run:*)",
-      "Bash(gh api:*)",
+      "Bash(git:*)",
+      "Bash(gh:*)",
       "WebFetch(domain:open.spotify.com)",
       "WebFetch(domain:developer.spotify.com)",
       "WebFetch(domain:chaerem.github.io)",
       "WebFetch(domain:github.com)",
-      "mcp__Claude_Preview__preview_start"
+      "mcp__Claude_Preview__*"
     ],
     "deny": []
   }
