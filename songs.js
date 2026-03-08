@@ -860,7 +860,7 @@ let SONGS_DATABASE = [
     { title: "Outside (feat. Ellie Goulding)", artist: "Calvin Harris, Ellie Goulding", year: 2014, spotifyId: "7MmG8p0F9N3C4AXdK6o6Eb", genre: "pop" },
     { title: "Photograph", artist: "Ed Sheeran", year: 2014, spotifyId: "1HNkqx9Ahdgi1Ixy2xkKkL", genre: "pop" },
     { title: "Rude", artist: "MAGIC!", year: 2014, spotifyId: "6RtPijgfPKROxEzTHNRiDp", genre: "pop" },
-    { title: "September", artist: "Earth, Wind & Fire", year: 2014, spotifyId: "3wpLkju0bJy89kjgdRys0j", genre: "pop" },
+    { title: "September", artist: "Earth, Wind & Fire", year: 1978, spotifyId: "3wpLkju0bJy89kjgdRys0j", genre: "pop" },
     { title: "Shut Up and Dance", artist: "WALK THE MOON", year: 2014, spotifyId: "4kbj5MwxO1bq9wjT5g9HaA", genre: "pop" },
     { title: "Stereotype", artist: "Samsaya", year: 2014, spotifyId: "2FWmmwYgnOWwPXPaLXg6ea", genre: "norsk" },
     { title: "Summer", artist: "Calvin Harris", year: 2014, spotifyId: "6YUTL4dYpB9xZO5qExPf05", genre: "pop" },
