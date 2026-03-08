@@ -150,10 +150,28 @@
                 <div id="reveal-result-icon" class="reveal-icon"></div>
                 <h2 id="reveal-title"></h2>
                 <p id="reveal-subtitle" class="reveal-subtitle"></p>
-                <div class="reveal-song-info">
+                <div class="reveal-song-info" id="reveal-song-info">
                     <p class="reveal-song-name" id="reveal-song-name"></p>
                     <p class="reveal-song-artist" id="reveal-song-artist"></p>
-                    <p class="reveal-song-year" id="reveal-song-year"></p>
+                    <p class="reveal-song-year-row"><span class="reveal-song-year" id="reveal-song-year"></span><button class="btn-edit-song" id="btn-edit-song" onclick="Game.gmStartEditSong()" title="Rediger sanginfo">✏️</button></p>
+                </div>
+                <div id="edit-song-form" class="edit-song-form" style="display:none">
+                    <div class="edit-song-field">
+                        <label>År</label>
+                        <input type="number" id="edit-song-year" inputmode="numeric">
+                    </div>
+                    <div class="edit-song-field">
+                        <label>Tittel</label>
+                        <input type="text" id="edit-song-title">
+                    </div>
+                    <div class="edit-song-field">
+                        <label>Artist</label>
+                        <input type="text" id="edit-song-artist-input">
+                    </div>
+                    <div class="edit-song-buttons">
+                        <button class="btn btn-primary btn-sm" onclick="Game.gmSaveEditSong()">Lagre</button>
+                        <button class="btn btn-ghost btn-sm" onclick="Game.gmCancelEditSong()">Avbryt</button>
+                    </div>
                 </div>
                 <div id="token-award-section" class="token-award-section" style="display:none">
                     <p id="token-award-text" class="token-award-text"></p>

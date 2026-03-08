@@ -533,6 +533,10 @@ const Game = {
         // Make sure reveal overlay is open
         this._showOverlay('song-reveal-overlay');
 
+        // Ensure edit form is hidden and song info is visible
+        document.getElementById('edit-song-form').style.display = 'none';
+        document.getElementById('reveal-song-info').style.display = '';
+
         // Switch from pre-reveal to result
         document.getElementById('pre-reveal').style.display = 'none';
         const resultSection = document.getElementById('reveal-result');
@@ -622,6 +626,7 @@ const Game = {
         this.challengePhase = null;
         this.titleArtistClaimed = false;
         this._challengerMode = false;
+        this._lastPlacedCard = null;
 
         this._hideOverlay('song-reveal-overlay');
 
@@ -1181,11 +1186,14 @@ const Game = {
 
         let result;
 
+        this._lastPlacedCard = null;
+
         if (cp.challengers.length === 0) {
             // No challenge — standard behavior
             if (originalCorrect) {
                 originalPlayer.timeline.splice(cp.originalDropIndex, 0, card);
                 originalPlayer.score = originalPlayer.timeline.length;
+                this._lastPlacedCard = card;
             }
             result = originalCorrect ? 'no_challenge_correct' : 'no_challenge_wrong';
         } else {
@@ -1193,6 +1201,7 @@ const Game = {
                 // Original correct → original keeps card, all challengers lose tokens
                 originalPlayer.timeline.splice(cp.originalDropIndex, 0, card);
                 originalPlayer.score = originalPlayer.timeline.length;
+                this._lastPlacedCard = card;
                 result = 'original_wins';
             } else {
                 // Original wrong — check challengers in order, first correct wins
@@ -1215,6 +1224,7 @@ const Game = {
                     const insertIdx = this._findChronologicalIndex(winner.timeline, card.year);
                     winner.timeline.splice(insertIdx, 0, card);
                     winner.score = winner.timeline.length;
+                    this._lastPlacedCard = card;
                     result = 'challenger_wins';
                 } else {
                     // All wrong — nobody gets the card
@@ -1406,6 +1416,7 @@ const Game = {
             <div class="gm-card">
                 <span class="gm-card-year">${card.year}</span>
                 <span class="gm-card-title">${this.escapeHtml(card.title)}</span>
+                <button class="gm-card-edit" onclick="Game.gmStartEditCard(${playerIndex}, ${ci})" title="Rediger">✏️</button>
                 <button class="gm-card-remove" onclick="Game.gmRemoveCard(${playerIndex}, ${ci})">&times;</button>
             </div>
         `).join('');
@@ -1432,10 +1443,9 @@ const Game = {
     gmAdjustScore(playerIndex, delta) {
         const player = this.players[playerIndex];
         if (delta > 0) {
-            const card = this.drawSong();
-            if (!card) return; // No songs left
-            player.timeline.push({ title: card.title, artist: card.artist, year: card.year });
-            player.timeline.sort((a, b) => a.year - b.year);
+            // Show search UI instead of drawing randomly
+            this.gmShowAddCard(playerIndex);
+            return;
         } else if (delta < 0 && player.timeline.length > 0) {
             player.timeline.pop();
         }
@@ -1560,6 +1570,196 @@ const Game = {
         this.renderScores();
         this.renderCurrentTurn();
         this.renderMenu();
+    },
+
+    // =============================================
+    // Song Editing (reveal + GM timeline)
+    // =============================================
+
+    gmStartEditSong() {
+        if (!this.currentSong) return;
+        document.getElementById('edit-song-year').value = this.currentSong.year;
+        document.getElementById('edit-song-title').value = this.currentSong.title;
+        document.getElementById('edit-song-artist-input').value = this.currentSong.artist;
+        document.getElementById('reveal-song-info').style.display = 'none';
+        document.getElementById('edit-song-form').style.display = '';
+    },
+
+    gmSaveEditSong() {
+        const newYear = parseInt(document.getElementById('edit-song-year').value);
+        const newTitle = document.getElementById('edit-song-title').value.trim();
+        const newArtist = document.getElementById('edit-song-artist-input').value.trim();
+
+        if (!newYear || !newTitle || !newArtist) return;
+
+        // Undo last placement if a card was placed
+        if (this._lastPlacedCard) {
+            for (const player of this.players) {
+                const idx = player.timeline.indexOf(this._lastPlacedCard);
+                if (idx !== -1) {
+                    player.timeline.splice(idx, 1);
+                    player.score = player.timeline.length;
+                    break;
+                }
+            }
+            this._lastPlacedCard = null;
+        }
+
+        // Reset winner for re-evaluation
+        if (this.challengePhase) {
+            this.challengePhase.winnerChallengerPlayerIndex = null;
+        }
+
+        // Update current song with corrected data
+        this.currentSong.year = newYear;
+        this.currentSong.title = newTitle;
+        this.currentSong.artist = newArtist;
+
+        // Hide edit form, show song info (resolvePlacement → showReveal will update display)
+        document.getElementById('edit-song-form').style.display = 'none';
+        document.getElementById('reveal-song-info').style.display = '';
+
+        // Re-resolve with corrected data
+        this.resolvePlacement();
+    },
+
+    gmCancelEditSong() {
+        document.getElementById('edit-song-form').style.display = 'none';
+        document.getElementById('reveal-song-info').style.display = '';
+    },
+
+    // GM timeline card editing
+    gmStartEditCard(playerIndex, cardIndex) {
+        const player = this.players[playerIndex];
+        const card = player.timeline[cardIndex];
+        if (!card) return;
+
+        const container = document.getElementById('gm-timeline-cards');
+        const cardEls = container.querySelectorAll('.gm-card');
+        if (!cardEls[cardIndex]) return;
+
+        cardEls[cardIndex].innerHTML = `
+            <div class="gm-card-edit-form">
+                <div class="gm-edit-row">
+                    <input type="number" id="gm-edit-year" value="${card.year}" class="gm-edit-input gm-edit-year" inputmode="numeric">
+                    <input type="text" id="gm-edit-title" value="${this.escapeHtml(card.title)}" class="gm-edit-input gm-edit-title" placeholder="Tittel">
+                </div>
+                <div class="gm-edit-row">
+                    <input type="text" id="gm-edit-artist" value="${this.escapeHtml(card.artist)}" class="gm-edit-input" placeholder="Artist">
+                </div>
+                <div class="gm-edit-row gm-edit-actions">
+                    <button class="btn btn-primary btn-sm" onclick="Game.gmSaveEditCard(${playerIndex}, ${cardIndex})">Lagre</button>
+                    <button class="btn btn-ghost btn-sm" onclick="Game.gmCancelEditCard()">Avbryt</button>
+                </div>
+            </div>`;
+    },
+
+    gmSaveEditCard(playerIndex, cardIndex) {
+        const player = this.players[playerIndex];
+        const card = player.timeline[cardIndex];
+        if (!card) return;
+
+        const newYear = parseInt(document.getElementById('gm-edit-year').value);
+        const newTitle = document.getElementById('gm-edit-title').value.trim();
+        const newArtist = document.getElementById('gm-edit-artist').value.trim();
+
+        if (!newYear || !newTitle || !newArtist) return;
+
+        card.year = newYear;
+        card.title = newTitle;
+        card.artist = newArtist;
+
+        // Re-sort timeline chronologically
+        player.timeline.sort((a, b) => a.year - b.year);
+
+        this.saveState();
+        this.renderTimeline();
+        this.gmRenderTimeline();
+    },
+
+    gmCancelEditCard() {
+        this.gmRenderTimeline();
+    },
+
+    // GM song search for adding cards
+    gmShowAddCard(playerIndex) {
+        const container = document.getElementById('gm-timeline-cards');
+        container.innerHTML = `
+            <div class="gm-add-card-search">
+                <input type="text" id="gm-song-search" class="gm-search-input" placeholder="Søk tittel eller artist..." oninput="Game.gmSearchSong(this.value, ${playerIndex})" autocomplete="off">
+                <div id="gm-search-results" class="gm-search-results"></div>
+                <div class="gm-search-actions">
+                    <button class="btn btn-secondary btn-sm" onclick="Game.gmAddRandomCard(${playerIndex})">🎲 Tilfeldig</button>
+                    <button class="btn btn-ghost btn-sm" onclick="Game.gmRenderTimeline()">Avbryt</button>
+                </div>
+            </div>`;
+        document.getElementById('gm-song-search').focus();
+    },
+
+    gmSearchSong(query, playerIndex) {
+        const resultsEl = document.getElementById('gm-search-results');
+        if (!query || query.length < 2) {
+            resultsEl.innerHTML = '';
+            return;
+        }
+
+        const q = query.toLowerCase();
+        const db = this._gameDatabase || (typeof SONGS_DATABASE !== 'undefined' ? SONGS_DATABASE : []);
+        const matches = db.filter(s =>
+            s.title.toLowerCase().includes(q) || s.artist.toLowerCase().includes(q)
+        ).slice(0, 10);
+
+        if (matches.length === 0) {
+            resultsEl.innerHTML = '<p class="gm-empty">Ingen treff</p>';
+            return;
+        }
+
+        resultsEl.innerHTML = matches.map((song, i) => `
+            <div class="gm-search-result" onclick="Game.gmAddSearchedCard(${playerIndex}, '${this.escapeHtml(song.title).replace(/'/g, "\\'")}', '${this.escapeHtml(song.artist).replace(/'/g, "\\'")}', ${song.year})">
+                <span class="gm-search-year">${song.year}</span>
+                <span class="gm-search-title">${this.escapeHtml(song.title)}</span>
+                <span class="gm-search-artist">${this.escapeHtml(song.artist)}</span>
+            </div>
+        `).join('');
+    },
+
+    gmAddSearchedCard(playerIndex, title, artist, year) {
+        const player = this.players[playerIndex];
+        const card = { title, artist, year };
+        player.timeline.push(card);
+        player.timeline.sort((a, b) => a.year - b.year);
+        player.score = player.timeline.length;
+
+        this.saveState();
+        this.renderScores();
+        this.renderTimeline();
+        this.renderMenu();
+
+        const winner = this.players.find(p => p.score >= this.cardsToWin);
+        if (winner) {
+            this.closeMenu();
+            this.showWinner(winner);
+        }
+    },
+
+    gmAddRandomCard(playerIndex) {
+        const card = this.drawSong();
+        if (!card) return;
+        const player = this.players[playerIndex];
+        player.timeline.push({ title: card.title, artist: card.artist, year: card.year });
+        player.timeline.sort((a, b) => a.year - b.year);
+        player.score = player.timeline.length;
+
+        this.saveState();
+        this.renderScores();
+        this.renderTimeline();
+        this.renderMenu();
+
+        const winner = this.players.find(p => p.score >= this.cardsToWin);
+        if (winner) {
+            this.closeMenu();
+            this.showWinner(winner);
+        }
     },
 
     gmRestart() {
