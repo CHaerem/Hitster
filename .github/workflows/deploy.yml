@@ -2,7 +2,7 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: ["main"]
+    branches: ["main", "test"]
   workflow_dispatch:
 
 permissions:
@@ -36,8 +36,45 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout main
         uses: actions/checkout@v4
+        with:
+          ref: main
+          path: staging
+
+      - name: Checkout test branch into subdirectory
+        uses: actions/checkout@v4
+        with:
+          ref: test
+          path: staging/test
+
+      - name: Fix paths in test copy
+        run: |
+          cd staging/test
+
+          # Remove nested .git so it doesn't interfere
+          rm -rf .git
+
+          # Fix manifest.json paths
+          sed -i 's|"start_url": "/Hitster/"|"start_url": "/Hitster/test/"|' manifest.json
+          sed -i 's|"scope": "/Hitster/"|"scope": "/Hitster/test/"|' manifest.json
+
+          # Fix service worker APP_SHELL paths
+          sed -i "s|'/'|'/Hitster/test/'|" sw.js
+          sed -i "s|'/index.html'|'/Hitster/test/index.html'|" sw.js
+          sed -i "s|'/style.css'|'/Hitster/test/style.css'|" sw.js
+          sed -i "s|'/app.js'|'/Hitster/test/app.js'|" sw.js
+          sed -i "s|'/game.js'|'/Hitster/test/game.js'|" sw.js
+          sed -i "s|'/songs.js'|'/Hitster/test/songs.js'|" sw.js
+          sed -i "s|'/manifest.json'|'/Hitster/test/manifest.json'|" sw.js
+          sed -i "s|'/icons/icon-192.png'|'/Hitster/test/icons/icon-192.png'|" sw.js
+          sed -i "s|'/icons/icon-512.png'|'/Hitster/test/icons/icon-512.png'|" sw.js
+
+          # Fix offline fallback path in sw.js
+          sed -i "s|caches.match('/index.html')|caches.match('/Hitster/test/index.html')|" sw.js
+
+      - name: Remove .git from staging
+        run: rm -rf staging/.git
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
@@ -45,7 +82,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: '.'
+          path: staging
 
       - name: Deploy to GitHub Pages
         id: deployment
