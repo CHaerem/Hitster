@@ -38,6 +38,7 @@ const nodeGlobals = {
     __filename: 'readonly',
     Buffer: 'readonly',
     console: 'readonly',
+    fetch: 'readonly',
     setTimeout: 'readonly',
     clearTimeout: 'readonly',
     setInterval: 'readonly',
@@ -56,53 +57,22 @@ export default [
     {
         rules: {
             // Indentation handled by Prettier — disable to avoid conflicts
-            'indent': 'off',
+            indent: 'off',
             'no-unused-vars': ['warn', { argsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^e$|^_' }],
             'no-console': 'off',
             'no-constant-condition': 'warn',
             'no-empty': ['error', { allowEmptyCatch: true }],
             'prefer-const': 'warn',
-            'eqeqeq': ['warn', 'always'],
+            eqeqeq: ['warn', 'always'],
         },
     },
-    // ─── songs.js: defines SONGS_DATABASE and shuffleArray ───
+    // ─── ES module source files (main.js, src/**) ───
     {
-        files: ['songs.js'],
+        files: ['main.js', 'src/**/*.js', 'songs-data.js'],
         languageOptions: {
             ecmaVersion: 2022,
-            sourceType: 'script',
+            sourceType: 'module',
             globals: browserGlobals,
-        },
-        rules: {
-            'no-unused-vars': 'off',
-        },
-    },
-    // ─── game.js: defines Game, uses globals from songs.js ───
-    {
-        files: ['game.js'],
-        languageOptions: {
-            ecmaVersion: 2022,
-            sourceType: 'script',
-            globals: {
-                ...browserGlobals,
-                SONGS_DATABASE: 'readonly',
-                shuffleArray: 'readonly',
-                App: 'readonly',
-            },
-        },
-    },
-    // ─── app.js: defines App, uses globals from songs.js and game.js ───
-    {
-        files: ['app.js'],
-        languageOptions: {
-            ecmaVersion: 2022,
-            sourceType: 'script',
-            globals: {
-                ...browserGlobals,
-                SONGS_DATABASE: 'writable',
-                shuffleArray: 'readonly',
-                Game: 'readonly',
-            },
         },
     },
     // ─── Service worker ───
