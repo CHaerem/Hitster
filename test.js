@@ -28,6 +28,8 @@ const mockElement = () => ({
     disabled: false,
     value: '0',
     focus: () => {},
+    querySelectorAll: () => [],
+    querySelector: () => null,
 });
 const mockDoc = {
     getElementById: () => mockElement(),
@@ -87,7 +89,7 @@ vm.runInContext(
 vm.runInContext(
     '(function(){' +
         readModule('src/songs.js') +
-        '\nthis.getSongs=getSongs;this.setSongs=setSongs;this.resetSongs=resetSongs;this.getAllSongs=getAllSongs;\n}).call(this);',
+        '\ninitSongsSync(this.SONGS_DATA);\nthis.getSongs=getSongs;this.setSongs=setSongs;this.resetSongs=resetSongs;this.getAllSongs=getAllSongs;this.initSongsSync=initSongsSync;\n}).call(this);',
     ctx,
 );
 
@@ -1504,7 +1506,10 @@ assert('isValidSong: missing artist', isValidSong({ ...validSong, artist: '' }) 
 assert('isValidSong: year too old', isValidSong({ ...validSong, year: 1800 }) === false);
 assert('isValidSong: non-integer year', isValidSong({ ...validSong, year: 2020.5 }) === false);
 assert('isValidSong: invalid spotifyId', isValidSong({ ...validSong, spotifyId: 'short' }) === false);
-assert('isValidSong: spotifyId with special chars', isValidSong({ ...validSong, spotifyId: '12345678@0abcdefABCDEF' }) === false);
+assert(
+    'isValidSong: spotifyId with special chars',
+    isValidSong({ ...validSong, spotifyId: '12345678@0abcdefABCDEF' }) === false,
+);
 
 console.log('\n--- coverUrl in timeline cards ---');
 G.init(['Alice', 'Bob'], 10);

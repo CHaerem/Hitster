@@ -7,16 +7,30 @@ export const uiMethods = {
 
     renderScores() {
         const el = document.getElementById('game-scores');
-        el.innerHTML = this.players
-            .map(
-                (p, i) => `
-            <div class="score-chip ${i === this.currentPlayerIndex ? 'active' : ''}">
-                ${escapeHtml(p.name)}: ${p.score}/${this.cardsToWin}
-                <span class="token-count"><span class="token-icon">\u{1F536}</span>${p.tokens}</span>
-            </div>
-        `,
-            )
-            .join('');
+        const chips = el.querySelectorAll('.score-chip');
+
+        // Rebuild only if player count changed, otherwise update in-place
+        if (chips.length !== this.players.length) {
+            el.innerHTML = this.players
+                .map(
+                    (p, i) => `
+                <div class="score-chip ${i === this.currentPlayerIndex ? 'active' : ''}">
+                    <span class="score-label">${escapeHtml(p.name)}: ${p.score}/${this.cardsToWin}</span>
+                    <span class="token-count"><span class="token-icon">\u{1F536}</span>${p.tokens}</span>
+                </div>
+            `,
+                )
+                .join('');
+        } else {
+            this.players.forEach((p, i) => {
+                const chip = chips[i];
+                chip.classList.toggle('active', i === this.currentPlayerIndex);
+                const label = chip.querySelector('.score-label');
+                if (label) label.textContent = `${p.name}: ${p.score}/${this.cardsToWin}`;
+                const tokenEl = chip.querySelector('.token-count');
+                if (tokenEl) tokenEl.lastChild.textContent = p.tokens;
+            });
+        }
         this.renderGameInfo();
     },
 
@@ -24,8 +38,7 @@ export const uiMethods = {
         const el = document.getElementById('game-info-bar');
         if (!el) return;
         const remaining = this.deck ? this.deck.length : 0;
-        el.innerHTML =
-            `<span>${remaining} kort igjen i bunken</span>`;
+        el.innerHTML = `<span>${remaining} kort igjen i bunken</span>`;
     },
 
     renderCurrentTurn() {

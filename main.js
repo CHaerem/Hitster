@@ -98,6 +98,6 @@ window.addEventListener('offline', () => {
     if (window.location.search.includes('code=')) {
         await handleCallback();
     }
-    App.init();
+    await App.init();
     updateOfflineBanner();
 })();
