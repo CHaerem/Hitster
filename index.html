@@ -365,26 +365,14 @@
         <script src="https://open.spotify.com/embed/iframe-api/v1"></script>
         <script type="module" src="main.js"></script>
         <script>
-            // Register Service Worker for PWA
+            // Register Service Worker for PWA — auto-update silently
             if ('serviceWorker' in navigator) {
                 navigator.serviceWorker
                     .register('./sw.js')
-                    .then(reg => {
-                        // Check for updates periodically
-                        reg.addEventListener('updatefound', () => {
-                            const newWorker = reg.installing;
-                            newWorker.addEventListener('statechange', () => {
-                                if (newWorker.state === 'activated' && navigator.serviceWorker.controller) {
-                                    // New version available — the stale-while-revalidate strategy
-                                    // ensures the next page load gets fresh assets
-                                    console.log('Hitster oppdatert! Ny versjon klar ved neste lasting.');
-                                }
-                            });
-                        });
-                    })
                     .catch(err => console.warn('SW registrering feilet:', err));
             }
         </script>
+
         <!-- Offline Banner -->
         <div id="offline-banner" class="offline-banner" style="display: none">
             Ingen internettforbindelse — noen funksjoner er utilgjengelige
