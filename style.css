@@ -93,8 +93,7 @@ body {
 #screen-welcome {
     background:
         radial-gradient(ellipse at 50% 0%, rgba(29, 185, 84, 0.08) 0%, transparent 50%),
-        radial-gradient(ellipse at 80% 80%, rgba(139, 92, 246, 0.06) 0%, transparent 40%),
-        var(--bg);
+        radial-gradient(ellipse at 80% 80%, rgba(139, 92, 246, 0.06) 0%, transparent 40%), var(--bg);
 }
 
 /* Logo */
@@ -667,9 +666,7 @@ h3 {
     display: none;
     position: absolute;
     inset: 0;
-    background:
-        radial-gradient(ellipse at 50% 40%, rgba(29, 185, 84, 0.06) 0%, transparent 60%),
-        var(--bg-card);
+    background: radial-gradient(ellipse at 50% 40%, rgba(29, 185, 84, 0.06) 0%, transparent 60%), var(--bg-card);
     border-radius: var(--radius);
     flex-direction: column;
     align-items: center;
@@ -970,7 +967,9 @@ h3 {
     margin-left: 0;
     animation: card-appear 0.25s ease-out;
     border: 1px solid rgba(255, 255, 255, 0.04);
-    transition: border-color 0.2s, background 0.2s;
+    transition:
+        border-color 0.2s,
+        background 0.2s;
 }
 
 .timeline-card:hover {
@@ -1300,9 +1299,16 @@ body.overlay-active {
 }
 
 @keyframes phoneWiggle {
-    0%, 100% { transform: rotate(0deg); }
-    25% { transform: rotate(-5deg); }
-    75% { transform: rotate(5deg); }
+    0%,
+    100% {
+        transform: rotate(0deg);
+    }
+    25% {
+        transform: rotate(-5deg);
+    }
+    75% {
+        transform: rotate(5deg);
+    }
 }
 
 .pass-phone-name {
@@ -1318,8 +1324,7 @@ body.overlay-active {
     background:
         radial-gradient(ellipse at 50% 30%, rgba(29, 185, 84, 0.1) 0%, transparent 50%),
         radial-gradient(ellipse at 20% 80%, rgba(139, 92, 246, 0.06) 0%, transparent 40%),
-        radial-gradient(ellipse at 80% 70%, rgba(59, 130, 246, 0.05) 0%, transparent 40%),
-        var(--bg);
+        radial-gradient(ellipse at 80% 70%, rgba(59, 130, 246, 0.05) 0%, transparent 40%), var(--bg);
 }
 
 .winner-trophy {
@@ -1331,7 +1336,8 @@ body.overlay-active {
 }
 
 @keyframes trophyFloat {
-    0%, 100% {
+    0%,
+    100% {
         transform: translateY(0) scale(1);
     }
     50% {
