@@ -1,6 +1,6 @@
 // App controller — screen management, setup, playlist loading, genre filtering
 
-import { getSongs, setSongs, resetSongs as resetSongsStore, getAllSongs } from './songs.js';
+import { initSongs, getSongs, setSongs, resetSongs as resetSongsStore, getAllSongs } from './songs.js';
 import { getAnonymousToken } from './spotify/auth.js';
 import { extractPlaylistId, fetchViaWebAPI, fetchViaEmbedScraping } from './spotify/playlist.js';
 import { SPOTIFY_CONFIG } from './spotify/config.js';
@@ -9,7 +9,6 @@ import { fetchUserPlaylists, fetchPlaylistTracks } from './spotify/api.js';
 
 export const App = {
     winCount: 10,
-    defaultSongCount: getAllSongs().length,
     _loadingAbort: null,
     _loadGeneration: 0,
     _selectedGenres: new Set(),
@@ -26,7 +25,8 @@ export const App = {
         { id: 'norsk', label: 'Norsk', icon: '🇳🇴' },
     ],
 
-    init() {
+    async init() {
+        await initSongs();
         document.getElementById('win-count').textContent = this.winCount;
 
         const savedUrl = localStorage.getItem('hitster-playlist-url');
