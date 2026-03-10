@@ -1,8 +1,7 @@
 // App controller — screen management, setup, playlist loading, genre filtering
 
 import { initSongs, getSongs, setSongs, resetSongs as resetSongsStore, getAllSongs } from './songs.js';
-import { getAnonymousToken } from './spotify/auth.js';
-import { extractPlaylistId, fetchViaWebAPI, fetchViaEmbedScraping } from './spotify/playlist.js';
+import { extractPlaylistId } from './spotify/playlist.js';
 import { SPOTIFY_CONFIG } from './spotify/config.js';
 import { isLoggedIn, getUsername, startLogin, logout } from './spotify/oauth.js';
 import { fetchUserPlaylists, fetchPlaylistTracks } from './spotify/api.js';
@@ -125,6 +124,12 @@ export const App = {
             return;
         }
 
+        // Playlist import requires Spotify login
+        if (!isLoggedIn()) {
+            this._showSongStatus('Logg inn med Spotify for å importere spillelister.', 'error');
+            return;
+        }
+
         if (this._loadingAbort) this._loadingAbort.abort();
         this._loadingAbort = new AbortController();
         const generation = ++this._loadGeneration;
@@ -136,58 +141,20 @@ export const App = {
         badge.textContent = 'Laster...';
         badge.className = 'song-source-badge loading';
         if (loadBtn) loadBtn.disabled = true;
-        this._showSongStatus('Kobler til Spotify...', 'loading');
+        this._showSongStatus('Henter sanger fra Spotify...', 'loading');
 
         try {
             const signal = this._loadingAbort.signal;
 
-            let songs = null;
-            let playlistName = 'Spilleliste';
-
-            // Try authenticated API first if logged in
-            if (isLoggedIn()) {
-                try {
-                    this._showSongStatus('Henter sanger fra Spotify...', 'loading');
-                    const result = await fetchPlaylistTracks(playlistId, signal, (done, total) => {
-                        this._showSongStatus(`Henter sanger... (${done}/${total})`, 'loading');
-                        badge.textContent = `${done}/${total}...`;
-                    });
-                    songs = result.songs;
-                    playlistName = result.name;
-                } catch (authErr) {
-                    if (authErr.name === 'AbortError') throw authErr;
-                    console.warn('Authenticated API failed, falling back:', authErr.message);
-                }
-            }
-
-            // Fallback: anonymous token + Web API
-            if (!songs || songs.length === 0) {
-                const token = await getAnonymousToken(signal);
-                if (signal.aborted) return;
-
-                try {
-                    this._showSongStatus('Henter sanger fra Spotify...', 'loading');
-                    const apiResult = await fetchViaWebAPI(playlistId, token, signal);
-                    songs = apiResult.songs;
-                    playlistName = apiResult.name;
-                } catch (apiErr) {
-                    if (apiErr.name === 'AbortError') throw apiErr;
-                    console.warn('Web API failed, falling back to embed scraping:', apiErr.message);
-                }
-            }
-
-            // Fallback: embed scraping
-            if (!songs || songs.length === 0) {
-                this._showSongStatus('Henter spilleliste...', 'loading');
-                const embedResult = await fetchViaEmbedScraping(playlistId, signal, (done, total) => {
-                    this._showSongStatus(`Henter sanger... (${done}/${total})`, 'loading');
-                    badge.textContent = `${done}/${total}...`;
-                });
-                songs = embedResult.songs;
-                playlistName = embedResult.name || playlistName;
-            }
+            const result = await fetchPlaylistTracks(playlistId, signal, (done, total) => {
+                this._showSongStatus(`Henter sanger... (${done}/${total})`, 'loading');
+                badge.textContent = `${done}/${total}...`;
+            });
 
             if (signal.aborted) return;
+
+            const songs = result.songs;
+            const playlistName = result.name;
 
             if (!songs || songs.length === 0) {
                 throw new Error('Ingen sanger med utgivelsesår funnet i spillelisten.');

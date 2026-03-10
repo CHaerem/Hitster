@@ -11,9 +11,7 @@ index.html
   └─ main.js (entry point)
        ├─ src/app.js (App controller)
        │    ├─ src/songs.js ──→ songs-data.js (lazy, dynamic import)
-       │    ├─ src/spotify/auth.js
        │    ├─ src/spotify/playlist.js
-       │    │    └─ src/spotify/cors-proxy.js
        │    ├─ src/spotify/config.js
        │    ├─ src/spotify/oauth.js
        │    └─ src/spotify/api.js
@@ -72,19 +70,19 @@ On restore, the state is validated, migrated if needed, and the song deck is rec
 
 ## Spotify Integration
 
-Three layers with automatic fallback:
+Two components:
 
-1. **Authenticated API** — OAuth PKCE login, full Spotify Web API access
-2. **Anonymous token** — Client credentials for public playlist data
-3. **Embed scraping** — Parse Spotify embed pages for track metadata
+1. **Playback** — Spotify Embed IFrame API with retry logic (5 attempts, exponential backoff). No auth needed.
+2. **Playlist import** — OAuth PKCE login, Spotify Web API for fetching playlist tracks. Optional — core game works with built-in songs.
 
-Playback uses the Spotify Embed IFrame API with retry logic (5 attempts, exponential backoff).
+All Spotify data access uses official authenticated APIs only (no scraping, no CORS proxies).
 
 ## Service Worker
 
 Caching strategies:
+
 - **Install:** Pre-cache all app shell files (JS modules, CSS, icons)
 - **Navigation:** Network-first with cache fallback (offline support)
 - **Same-origin:** Stale-while-revalidate (fast loads, background updates)
 - **Cross-origin:** Cache-first for fonts
-- **Never cache:** Spotify APIs, CORS proxies, embed SDK
+- **Never cache:** Spotify APIs, embed SDK

@@ -26,7 +26,14 @@ export const engineMethods = {
             if (!startCard) return { name, timeline: [], score: 0, tokens: 3 };
             return {
                 name,
-                timeline: [{ title: startCard.title, artist: startCard.artist, year: startCard.year, coverUrl: startCard.coverUrl || null }],
+                timeline: [
+                    {
+                        title: startCard.title,
+                        artist: startCard.artist,
+                        year: startCard.year,
+                        coverUrl: startCard.coverUrl || null,
+                    },
+                ],
                 score: 1,
                 tokens: 3,
             };

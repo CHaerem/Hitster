@@ -367,9 +367,7 @@
         <script>
             // Register Service Worker for PWA — auto-update silently
             if ('serviceWorker' in navigator) {
-                navigator.serviceWorker
-                    .register('./sw.js')
-                    .catch(err => console.warn('SW registrering feilet:', err));
+                navigator.serviceWorker.register('./sw.js').catch(err => console.warn('SW registrering feilet:', err));
             }
         </script>
 
