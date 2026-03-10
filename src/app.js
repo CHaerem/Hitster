@@ -16,6 +16,7 @@ export const App = {
     _usingCustomPlaylist: false,
     _playlistOffset: 0,
     _playlistTotal: 0,
+    _allPlaylists: [],
 
     _genreConfig: [
         { id: 'pop', label: 'Pop', icon: '🎤' },
@@ -277,46 +278,43 @@ export const App = {
         if (!container || !grid) return;
 
         this._playlistOffset = 0;
+        this._allPlaylists = [];
         container.style.display = '';
-        grid.innerHTML = '<p style="color:var(--text-dim);padding:8px;">Laster spillelister...</p>';
+        grid.innerHTML = '<p class="playlist-status">Laster spillelister...</p>';
+
+        const searchInput = document.getElementById('playlist-search');
+        if (searchInput) {
+            searchInput.value = '';
+            searchInput.oninput = () => this._filterPlaylists();
+        }
 
         try {
-            const result = await fetchUserPlaylists(0, 20);
-            this._playlistOffset = 20;
+            const result = await fetchUserPlaylists(0, 50);
+            this._playlistOffset = 50;
             this._playlistTotal = result.total;
-            grid.innerHTML = '';
+            this._allPlaylists = result.items;
 
-            if (result.items.length === 0) {
-                grid.innerHTML = '<p style="color:var(--text-dim);padding:8px;">Ingen spillelister funnet.</p>';
-                return;
-            }
-
-            for (const pl of result.items) {
-                grid.appendChild(this._createPlaylistCard(pl));
-            }
+            this._renderPlaylistGrid();
 
             const loadMoreBtn = document.getElementById('spotify-load-more');
             if (loadMoreBtn) {
                 loadMoreBtn.style.display = result.hasMore ? '' : 'none';
             }
         } catch (e) {
-            grid.innerHTML = `<p style="color:var(--error);padding:8px;">${e.message}</p>`;
+            grid.innerHTML = `<p class="playlist-status playlist-error">${this._escapeAttr(e.message)}</p>`;
         }
     },
 
     async loadMorePlaylists() {
-        const grid = document.getElementById('spotify-playlist-grid');
         const loadMoreBtn = document.getElementById('spotify-load-more');
-        if (!grid) return;
 
         try {
             if (loadMoreBtn) loadMoreBtn.disabled = true;
-            const result = await fetchUserPlaylists(this._playlistOffset, 20);
-            this._playlistOffset += 20;
+            const result = await fetchUserPlaylists(this._playlistOffset, 50);
+            this._playlistOffset += 50;
 
-            for (const pl of result.items) {
-                grid.appendChild(this._createPlaylistCard(pl));
-            }
+            this._allPlaylists = this._allPlaylists.concat(result.items);
+            this._renderPlaylistGrid();
 
             if (loadMoreBtn) {
                 loadMoreBtn.style.display = result.hasMore ? '' : 'none';
@@ -324,6 +322,41 @@ export const App = {
             }
         } catch (e) {
             if (loadMoreBtn) loadMoreBtn.disabled = false;
+        }
+    },
+
+    _filterPlaylists() {
+        this._renderPlaylistGrid();
+    },
+
+    _getFilteredPlaylists() {
+        const searchInput = document.getElementById('playlist-search');
+        const query = (searchInput?.value || '').toLowerCase().trim();
+        if (!query) return this._allPlaylists;
+        return this._allPlaylists.filter(
+            p => p.name.toLowerCase().includes(query) || p.owner.toLowerCase().includes(query),
+        );
+    },
+
+    _renderPlaylistGrid() {
+        const grid = document.getElementById('spotify-playlist-grid');
+        if (!grid) return;
+        grid.innerHTML = '';
+
+        const filtered = this._getFilteredPlaylists();
+
+        if (this._allPlaylists.length === 0) {
+            grid.innerHTML = '<p class="playlist-status">Ingen spillelister funnet.</p>';
+            return;
+        }
+
+        if (filtered.length === 0) {
+            grid.innerHTML = '<p class="playlist-status">Ingen treff.</p>';
+            return;
+        }
+
+        for (const pl of filtered) {
+            grid.appendChild(this._createPlaylistCard(pl));
         }
     },
 
