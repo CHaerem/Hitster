@@ -38,9 +38,7 @@ Hitster/
 │   │   ├── gm-panel.js     # Game Master panel
 │   │   └── phases.js       # Phase state machine
 │   └── spotify/
-│       ├── auth.js          # Anonymous token
-│       ├── playlist.js      # Playlist loading
-│       ├── cors-proxy.js    # CORS proxy layer
+│       ├── playlist.js      # Playlist URL parsing
 │       ├── config.js        # OAuth config
 │       ├── oauth.js         # OAuth PKCE flow
 │       └── api.js           # Authenticated API client
@@ -89,6 +87,7 @@ npx prettier --check .
 5. Commit, push, create PR to `main`
 
 The PR will automatically:
+
 - Run unit tests and E2E tests
 - Deploy a preview to https://chaerem.github.io/Hitster/test/
 

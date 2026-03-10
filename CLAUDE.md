@@ -53,9 +53,7 @@ Single-page app with 5 screens managed by showing/hiding divs (no router). ES mo
 
 **Spotify modules:**
 
-- `src/spotify/auth.js` — Anonymous Spotify token acquisition
-- `src/spotify/playlist.js` — Playlist loading (Web API + embed scraping fallback)
-- `src/spotify/cors-proxy.js` — CORS proxy rotation layer
+- `src/spotify/playlist.js` — Playlist URL parsing (extract playlist ID)
 - `src/spotify/config.js` — Spotify client ID and redirect URI
 - `src/spotify/oauth.js` — Spotify OAuth PKCE flow (login, token exchange, refresh)
 - `src/spotify/api.js` — Authenticated Spotify Web API client (playlists, tracks)
@@ -116,13 +114,13 @@ Always run `node test.js` and `npx playwright test` before committing.
 
 ## Design Principles
 
-- **No auth required**: The app is designed to work fully without Spotify login. OAuth is optional (limited to 5 users under Spotify Development Mode). All core features — playback, built-in songs, playlist URL import — work without authentication.
+- **No auth required for core experience**: The app works fully without Spotify login — playback via embed and 1200+ built-in songs. OAuth is optional for importing custom playlists (limited to 5 users under Spotify Development Mode).
+- **ToS-compliant**: No scraping, no CORS proxies, no anonymous token extraction. All Spotify data access uses official authenticated APIs only.
 
 ## Key Patterns
 
 - **Spotify playback**: Embed IFrame API with retry logic (5 retries, exponential backoff) — no auth needed
-- **API fallback chain**: Anonymous token → embed scraping → CORS proxy (auth optional, not required)
-- **Spotify OAuth PKCE**: Optional login for browsing private playlists (5-user limit in Dev Mode)
+- **Spotify OAuth PKCE**: Optional login for importing custom playlists (5-user limit in Dev Mode)
 - **Generation-based callbacks**: `this._generation` counter invalidates stale async operations
 - **XSS prevention**: Always use `escapeHtml()` for user/song data in innerHTML
 - **Service worker**: Stale-while-revalidate for app shell, network-first for navigation

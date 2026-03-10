@@ -3,8 +3,7 @@
  * Hitster Song Generator
  *
  * Generates songs-data.js from one or more Spotify playlists.
- * Uses Spotify Web API (client credentials) for speed and reliability,
- * with embed scraping as fallback when no API credentials are configured.
+ * Uses Spotify Web API (client credentials) — requires API credentials.
  *
  * Usage:
  *   node tools/generate-songs.js <playlist_url_or_id> [more_playlists...]
@@ -21,6 +20,11 @@
  *   --json            Output as songs.json (for runtime loading)
  *   --dry-run         Show songs without writing files
  *   --validate        Check existing songs for stale/unavailable tracks
+ *
+ * Setup:
+ *   cp tools/.env.example tools/.env
+ *   # Edit tools/.env with your Spotify client ID and secret
+ *   # Get credentials at https://developer.spotify.com/dashboard
  */
 
 const fs = require('fs');
@@ -133,125 +137,6 @@ function apiTrackToSong(item, genre) {
     return song;
 }
 
-// ─── Spotify Embed Scraping (Fallback) ───
-
-const HEADERS = {
-    'User-Agent':
-        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-};
-
-function parseNextData(html) {
-    const match = html.match(/<script\s+id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/);
-    if (!match) return null;
-    try {
-        return JSON.parse(match[1]);
-    } catch {
-        return null;
-    }
-}
-
-async function fetchPlaylistFromEmbed(playlistId) {
-    const url = `https://open.spotify.com/embed/playlist/${playlistId}`;
-    const response = await fetch(url, { headers: HEADERS });
-    if (!response.ok) {
-        throw new Error(`Failed to fetch playlist embed: ${response.status}`);
-    }
-
-    const html = await response.text();
-    const data = parseNextData(html);
-    if (!data) throw new Error('Could not parse playlist embed page');
-
-    const entity = data?.props?.pageProps?.state?.data?.entity;
-    if (!entity || !entity.trackList) {
-        throw new Error('No track data in playlist embed');
-    }
-
-    const tracks = entity.trackList.map(t => ({
-        spotifyId: t.uri.split(':')[2],
-        title: t.title,
-        artist: t.subtitle,
-    }));
-
-    return { name: entity.name || playlistId, tracks };
-}
-
-async function fetchTrackYear(spotifyId, retries = 2) {
-    for (let attempt = 0; attempt <= retries; attempt++) {
-        try {
-            const url = `https://open.spotify.com/embed/track/${spotifyId}`;
-            const response = await fetch(url, { headers: HEADERS });
-            if (!response.ok) {
-                if (attempt < retries) {
-                    await sleep(1000);
-                    continue;
-                }
-                return { year: 0 };
-            }
-
-            const html = await response.text();
-            const data = parseNextData(html);
-            if (!data) return { year: 0 };
-
-            const entity = data?.props?.pageProps?.state?.data?.entity;
-            if (!entity?.releaseDate?.isoString) return { year: 0 };
-
-            const coverMatch = html.match(/"coverArt":\{"sources":\[.*?"url":"([^"]+)"/);
-            return {
-                year: new Date(entity.releaseDate.isoString).getFullYear(),
-                coverUrl: coverMatch ? coverMatch[1] : null,
-            };
-        } catch {
-            if (attempt < retries) {
-                await sleep(1000);
-                continue;
-            }
-            return { year: 0 };
-        }
-    }
-    return { year: 0 };
-}
-
-async function enrichTracksWithYears(tracks, genre) {
-    const BATCH_SIZE = 10;
-    const BATCH_DELAY_MS = 500;
-    const total = tracks.length;
-    let completed = 0;
-    let skipped = 0;
-
-    for (let i = 0; i < tracks.length; i += BATCH_SIZE) {
-        const batch = tracks.slice(i, i + BATCH_SIZE);
-        await Promise.all(
-            batch.map(async track => {
-                const result = await fetchTrackYear(track.spotifyId);
-                track.year = result.year;
-                track.coverUrl = result.coverUrl || null;
-                completed++;
-            }),
-        );
-        const pct = Math.round((completed / total) * 100);
-        process.stdout.write(`\r   Release dates: ${completed}/${total} (${pct}%)`);
-        if (i + BATCH_SIZE < tracks.length) await sleep(BATCH_DELAY_MS);
-    }
-
-    const withYears = tracks.filter(t => {
-        if (t.year === 0) {
-            skipped++;
-            return false;
-        }
-        return true;
-    });
-
-    process.stdout.write('\n');
-    if (skipped > 0) console.warn(`   Skipped ${skipped} tracks without release year`);
-
-    return withYears.map(t => {
-        const song = { title: t.title, artist: t.artist, year: t.year, spotifyId: t.spotifyId };
-        if (t.coverUrl) song.coverUrl = t.coverUrl;
-        if (genre) song.genre = genre;
-        return song;
-    });
-}
-
 // ─── Validate ───
 
 async function validateExistingSongs(token) {
@@ -269,29 +154,19 @@ async function validateExistingSongs(token) {
         const batch = songs.slice(i, i + BATCH_SIZE);
         const ids = batch.map(s => s.spotifyId).join(',');
 
-        if (token) {
-            const response = await fetch(`https://api.spotify.com/v1/tracks?ids=${ids}`, {
-                headers: { Authorization: `Bearer ${token}` },
+        const response = await fetch(`https://api.spotify.com/v1/tracks?ids=${ids}`, {
+            headers: { Authorization: `Bearer ${token}` },
+        });
+        if (response.ok) {
+            const data = await response.json();
+            data.tracks.forEach((track, idx) => {
+                if (!track) stale.push(batch[idx]);
             });
-            if (response.ok) {
-                const data = await response.json();
-                data.tracks.forEach((track, idx) => {
-                    if (!track) stale.push(batch[idx]);
-                });
-            }
-        } else {
-            for (const song of batch) {
-                const response = await fetch(`https://open.spotify.com/embed/track/${song.spotifyId}`, {
-                    headers: HEADERS,
-                });
-                if (!response.ok) stale.push(song);
-                await sleep(200);
-            }
         }
 
         const pct = Math.round(((i + batch.length) / songs.length) * 100);
         process.stdout.write(`\r   Checking: ${i + batch.length}/${songs.length} (${pct}%)`);
-        if (token) await sleep(100);
+        await sleep(100);
     }
 
     process.stdout.write('\n\n');
@@ -418,6 +293,15 @@ async function main() {
     const clientId = env.SPOTIFY_CLIENT_ID || process.env.SPOTIFY_CLIENT_ID;
     const clientSecret = env.SPOTIFY_CLIENT_SECRET || process.env.SPOTIFY_CLIENT_SECRET;
 
+    if (!clientId || !clientSecret) {
+        console.error('Error: Spotify API credentials required.\n');
+        console.error('Setup:');
+        console.error('  cp tools/.env.example tools/.env');
+        console.error('  # Edit tools/.env with your Spotify client ID and secret');
+        console.error('  # Get credentials at https://developer.spotify.com/dashboard');
+        process.exit(1);
+    }
+
     const args = process.argv.slice(2);
 
     // Parse --genre <tag>
@@ -443,18 +327,14 @@ async function main() {
     const dryRun = flags.has('--dry-run');
     const validateMode = flags.has('--validate');
 
-    // Get API token if credentials available
-    let token = null;
-    if (clientId && clientSecret) {
-        try {
-            token = await getClientCredentialsToken(clientId, clientSecret);
-            console.log('Using Spotify Web API (authenticated)\n');
-        } catch (e) {
-            console.warn(`API auth failed (${e.message}), falling back to embed scraping\n`);
-        }
-    } else {
-        console.log('No API credentials — using embed scraping (slower)');
-        console.log('Tip: Add SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET to tools/.env\n');
+    // Get API token
+    let token;
+    try {
+        token = await getClientCredentialsToken(clientId, clientSecret);
+        console.log('Authenticated with Spotify Web API\n');
+    } catch (e) {
+        console.error(`API authentication failed: ${e.message}`);
+        process.exit(1);
     }
 
     // Handle --validate
@@ -482,26 +362,16 @@ async function main() {
         const playlistId = extractPlaylistId(input);
         console.log(`Fetching playlist: ${playlistId}${genre ? ` [${genre}]` : ''}`);
 
-        let songs;
+        const playlist = await fetchPlaylistViaAPI(playlistId, token);
+        console.log(`   "${playlist.name}" — ${playlist.tracks.total} tracks`);
 
-        if (token) {
-            // Fast path: Spotify Web API
-            const playlist = await fetchPlaylistViaAPI(playlistId, token);
-            console.log(`   "${playlist.name}" — ${playlist.tracks.total} tracks`);
-
-            const items = await fetchPlaylistTracksViaAPI(playlistId, token);
-            songs = items.map(item => apiTrackToSong(item, genre)).filter(Boolean);
-        } else {
-            // Fallback: embed scraping
-            const { name, tracks } = await fetchPlaylistFromEmbed(playlistId);
-            console.log(`   "${name}" — ${tracks.length} tracks`);
-            songs = await enrichTracksWithYears(tracks, genre);
-        }
+        const items = await fetchPlaylistTracksViaAPI(playlistId, token);
+        const songs = items.map(item => apiTrackToSong(item, genre)).filter(Boolean);
 
         console.log(`   ${songs.length} songs with release dates\n`);
         allSongs.push(...songs);
 
-        await sleep(token ? 100 : 1000);
+        await sleep(100);
     }
 
     // Append to existing if requested
