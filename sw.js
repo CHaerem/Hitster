@@ -1,7 +1,7 @@
 // Plongster Service Worker
 // Caches app shell for offline/installable PWA experience
 
-const CACHE_VERSION = 'plongster-v1';
+const CACHE_VERSION = 'plongster-e90d6c6';
 
 // App shell — files needed for the app to work
 const APP_SHELL = [
