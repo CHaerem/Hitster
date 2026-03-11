@@ -131,7 +131,7 @@ export const challengeMethods = {
 
         content.innerHTML = `
             <h2>Hvem utfordrer?</h2>
-            <p class="challenge-text">Koster 1 \u{1F536} \u00e5 utfordre:</p>
+            <p class="challenge-text">Koster 1 \u{1F536} å utfordre:</p>
             <div class="challenge-player-list">${playerButtons}</div>
             <button class="btn btn-ghost" data-action="cancel-challenge">Avbryt</button>
         `;
@@ -188,6 +188,7 @@ export const challengeMethods = {
     selectChallenger(playerIndex) {
         if (this.players[playerIndex].tokens < 1) return;
         const cp = this.challengePhase;
+        if (cp.challengers.some(c => c.playerIndex === playerIndex)) return;
         this.players[playerIndex].tokens = Math.max(0, this.players[playerIndex].tokens - 1);
         cp.challengers.push({ playerIndex, dropIndex: null });
         cp.currentChallengerIdx = cp.challengers.length - 1;
@@ -208,7 +209,7 @@ export const challengeMethods = {
             <div class="pass-phone-icon">&#128241;</div>
             <h2>Gi telefonen til</h2>
             <p class="pass-phone-name">${challengerName}</p>
-            <p class="challenge-text">Du skal plassere sangen p\u00e5 <strong>${originalName}s tidslinje</strong> der du mener den h\u00f8rer hjemme. (1 \u{1F536} brukt)</p>
+            <p class="challenge-text">Du skal plassere sangen på <strong>${originalName}s tidslinje</strong> der du mener den hører hjemme. (1 \u{1F536} brukt)</p>
             <button class="btn btn-primary btn-large" data-action="show-challenger-timeline">Jeg er klar!</button>
             <button class="btn btn-ghost" data-action="cancel-challenge-refund" style="margin-top:8px">Angre utfordring</button>
         `;
@@ -233,7 +234,7 @@ export const challengeMethods = {
         const currentChallenger = cp.challengers[cp.currentChallengerIdx];
         const challengerName = escapeHtml(this.players[currentChallenger.playerIndex].name);
         const originalName = escapeHtml(this.players[cp.originalPlayerIndex].name);
-        el.innerHTML = `<strong>${challengerName}</strong> utfordrer \u2014 plasser sangen p\u00e5 ${originalName}s tidslinje!`;
+        el.innerHTML = `<strong>${challengerName}</strong> utfordrer \u2014 plasser sangen på ${originalName}s tidslinje!`;
 
         const actionsEl = document.getElementById('game-actions');
         actionsEl.innerHTML = `<button class="btn btn-ghost action-btn" data-action="cancel-challenge-from-timeline">Angre utfordring (\u{1F536} refunderes)</button>`;
@@ -370,20 +371,20 @@ export const challengeMethods = {
                 break;
             case 'challenger_wins':
                 icon.className = 'reveal-icon stolen';
-                title.textContent = 'Stj\u00e5let!';
+                title.textContent = 'Stjålet!';
                 subtitle.textContent = `${escapeHtml(this.players[this.challengePhase.winnerChallengerPlayerIndex].name)} stjal kortet!`;
                 subtitle.className = 'reveal-subtitle stolen';
                 break;
             case 'nobody_wins':
                 icon.className = 'reveal-icon wrong';
                 title.textContent = 'Begge feil!';
-                subtitle.textContent = 'Ingen f\u00e5r kortet';
+                subtitle.textContent = 'Ingen får kortet';
                 subtitle.className = 'reveal-subtitle';
                 break;
             case 'nobody_wins_multi':
                 icon.className = 'reveal-icon wrong';
                 title.textContent = 'Alle feil!';
-                subtitle.textContent = 'Ingen f\u00e5r kortet';
+                subtitle.textContent = 'Ingen får kortet';
                 subtitle.className = 'reveal-subtitle';
                 break;
         }
@@ -412,7 +413,7 @@ export const challengeMethods = {
         const nextTurnBtn = document.getElementById('btn-next-turn');
         if (this.titleArtistClaimed) {
             const claimPlayer = this.players[this.challengePhase.originalPlayerIndex];
-            tokenText.textContent = `${escapeHtml(claimPlayer.name)} hevdet \u00e5 vite tittel og artist \u2014 stemte det?`;
+            tokenText.textContent = `${escapeHtml(claimPlayer.name)} hevdet å vite tittel og artist \u2014 stemte det?`;
             tokenText.className = 'token-award-text';
             tokenButtons.style.display = '';
             tokenSection.style.display = '';

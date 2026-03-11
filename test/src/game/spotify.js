@@ -103,7 +103,7 @@ export const spotifyMethods = {
                 if (wasPlaying && e.data.position === 0) {
                     this._updatePlaybackUI('paused');
                     const text = document.querySelector('.listening-text');
-                    if (text) text.textContent = 'Sangen er ferdig \u2014 trykk for \u00e5 spille igjen';
+                    if (text) text.textContent = 'Sangen er ferdig \u2014 trykk for å spille igjen';
                 } else {
                     this._updatePlaybackUI('paused');
                 }
@@ -122,7 +122,7 @@ export const spotifyMethods = {
         const iframeEl = document.getElementById('spotify-iframe');
 
         if (attempt > 0) {
-            document.querySelector('.listening-text').textContent = 'Pr\u00f8ver igjen...';
+            document.querySelector('.listening-text').textContent = 'Prøver igjen...';
         }
 
         this._loadTimeout = setTimeout(() => {
@@ -136,7 +136,7 @@ export const spotifyMethods = {
             } else {
                 console.warn('Spotify embed timeout after retries');
                 this._updatePlaybackUI('ready');
-                document.querySelector('.listening-text').textContent = 'Trykk for \u00e5 pr\u00f8ve igjen';
+                document.querySelector('.listening-text').textContent = 'Trykk for å prøve igjen';
             }
         }, 4000);
 
@@ -154,7 +154,7 @@ export const spotifyMethods = {
                 this._loadTimeout = null;
             }
             this._updatePlaybackUI('ready');
-            document.querySelector('.listening-text').textContent = 'Trykk for \u00e5 pr\u00f8ve igjen';
+            document.querySelector('.listening-text').textContent = 'Trykk for å prøve igjen';
         }
     },
 
@@ -196,7 +196,7 @@ export const spotifyMethods = {
                 }
                 bars.style.display = 'none';
                 controls.style.display = 'flex';
-                text.textContent = 'Trykk for \u00e5 spille';
+                text.textContent = 'Trykk for å spille';
                 break;
 
             case 'playing':
@@ -222,7 +222,7 @@ export const spotifyMethods = {
                 }
                 bars.style.display = 'none';
                 controls.style.display = 'flex';
-                text.textContent = 'Trykk for \u00e5 spille';
+                text.textContent = 'Trykk for å spille';
                 break;
 
             case 'error':
@@ -237,7 +237,7 @@ export const spotifyMethods = {
                 controls.style.display = 'flex';
                 text.innerHTML =
                     'Spotify kunne ikke lastes.<br>' +
-                    '<button class="btn btn-ghost btn-sm" data-action="replay" style="margin-top:8px">Pr\u00f8v igjen</button> ' +
+                    '<button class="btn btn-ghost btn-sm" data-action="replay" style="margin-top:8px">Prøv igjen</button> ' +
                     '<button class="btn btn-ghost btn-sm" data-action="skip-song" style="margin-top:8px">Hopp over</button>';
                 break;
         }

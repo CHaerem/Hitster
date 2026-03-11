@@ -81,7 +81,7 @@ export const uiMethods = {
         const dropAriaLabel = index => {
             if (timeline.length === 0) return 'Plasser sang her';
             if (index === 0) {
-                return `Plasser f\u00f8r ${timeline[0].year}`;
+                return `Plasser før ${timeline[0].year}`;
             }
             if (index === timeline.length) {
                 return `Plasser etter ${timeline[timeline.length - 1].year}`;
