@@ -43,7 +43,6 @@
     --radius: 12px;
     --radius-sm: 8px;
     --border: rgba(255, 255, 255, 0.1);
-    --glow-accent: rgba(29, 185, 84, 0.15);
     --glow-purple: rgba(139, 92, 246, 0.15);
     --safe-bottom: env(safe-area-inset-bottom, 16px);
     --safe-top: env(safe-area-inset-top, 0px);

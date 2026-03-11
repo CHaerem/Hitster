@@ -24,7 +24,7 @@ export const placementMethods = {
         if (timeline.length === 0) {
             positionText = 'Start tidslinjen med denne sangen?';
         } else if (index === 0) {
-            positionText = `Plassere f\u00f8r ${timeline[0].year}?`;
+            positionText = `Plassere før ${timeline[0].year}?`;
         } else if (index === timeline.length) {
             positionText = `Plassere etter ${timeline[timeline.length - 1].year}?`;
         } else {
