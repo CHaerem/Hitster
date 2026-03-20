@@ -35,7 +35,7 @@
         <div id="a11y-announcements" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 
         <!-- PR Preview Banner (hidden by default, populated by CI) -->
-        <div id="pr-preview-banner">Preview av <a href="https://github.com/CHaerem/Plongster/pull/44">#44: Enhance visual design with depth, glow effects, and polished interactions</a></div>
+        <div id="pr-preview-banner">Preview av <a href="https://github.com/CHaerem/Plongster/pull/45">#45: Fix Spotify playback race condition and improve player UX</a></div>
 
         <!-- Welcome Screen -->
         <div id="screen-welcome" class="screen active">
@@ -375,7 +375,7 @@
                 <!-- Spotify Embed Player (hidden during gameplay) -->
                 <div class="spotify-player-wrapper" id="spotify-wrapper">
                     <div id="spotify-embed"></div>
-                    <div class="player-cover" id="player-cover">
+                    <div class="player-cover" id="player-cover" data-action="toggle-play">
                         <div class="listening-bars" id="listening-bars" style="display: none">
                             <span></span>
                             <span></span>
@@ -536,6 +536,13 @@
             </div>
         </div>
 
+        <script>
+            // Capture Spotify IFrame API callback before SDK loads to avoid
+            // race condition with deferred module scripts
+            window._spotifyAPIPromise = new Promise(function (resolve) {
+                window.onSpotifyIframeApiReady = resolve;
+            });
+        </script>
         <script src="https://open.spotify.com/embed/iframe-api/v1"></script>
         <script type="module" src="main.js"></script>
         <script>
